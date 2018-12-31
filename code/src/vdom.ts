@@ -1,7 +1,11 @@
+// TODO: JSX compatible variant
+// TODO: Functional vdom should be passed vdom instance v = {value: (vdom) => Vdom}; n = v.value(v);
+// This will allow redraws easier, especially in an oninit() call
+
 export interface Vdom {
     _type: "Vdom";
     parent: Vdom | null;
-    elem: HTMLElement | null;
+    elem: Node | null;
     value: VdomNode | VdomFunction | string;    // Value set by user
     node: VdomNode | string | null;             // Value used internally
 }
@@ -25,7 +29,7 @@ interface CustomAttr {
 
 export type VdomFunction = () => Vdom;
 
-export type Child = Vdom | VdomFunction | string | null;
+export type Child = Vdom | VdomFunction | string | null | boolean;
 
 // TODO: Make string child a different custom attribute, not a child
 export function v(selector: VdomFunction): Vdom;
@@ -96,7 +100,12 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
     };
 
     // Add the children in
-    vdom_node.children = children.map(child => {
+    vdom_node.children = children.filter(child =>
+        child !== null && child !== undefined && child !== false && child !== true
+    ).map(child => {
+        if (child === null || child === undefined || child === false || child === true) {
+            throw new Error("Filtering doesn't work apparantly.")
+        }
 
         // String and function children need a vdom manually created 
         // since v() wasn't called on them
@@ -112,13 +121,11 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
             } as Vdom;
 
         // If a vdom was created through v(), just bind the parent
-        }  else if (child !== null && child !== undefined) {
+        }  else {
             child.parent = vdom;
             return child;
         }
-
-        return null;
-    }).filter(child => child !== null && child !== undefined) as Vdom[];
+    });
 
     return vdom;
 }

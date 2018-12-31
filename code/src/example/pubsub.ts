@@ -1,4 +1,4 @@
-import {v, redraw, mount, Vdom} from "../framework";
+import {v, redraw, mount, Vdom} from "..";
 
 // Set Up
 class EventSource<Payload> {

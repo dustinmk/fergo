@@ -1,4 +1,4 @@
-import {v, redraw, mount} from "../framework";
+import {v, redraw, mount} from "..";
 
 // Todo Model
 interface Todo {
@@ -20,11 +20,8 @@ const root = v(() =>
         }),
         v("ul", todos.map(todo => Todo(todo))),
         v("button", {
-            onclick: () => {
-                if (text.length > 0) {
-                    todos.push({done: false, text: `${text} ${++count}`})
-                }
-            }
+            onclick: () => text.length > 0 &&
+                todos.push({done: false, text: `${text} ${++count}`})
         }, "Add todo"),
         v("input", {
             type: "checkbox",
