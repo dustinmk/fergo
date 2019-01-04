@@ -24,35 +24,25 @@ export function perfRedraw(vdom: Vdom) {
 
 // Actual redraw
 export function redraw(vdom: Vdom) {
-    if (vdom.elem === null) {
-        throw new Error("Redraw must be called on already instantiated nodes");
-    }
-
     // Propagate redraw() up to closest functional vnode
-    if (typeof vdom.value !== "function") {
+    if (vdom._type !== "VdomFunctional") {
         if (vdom.parent === null) {
             throw new Error("Root element must be a functional vdom");
         }
         redraw(vdom.parent);
 
     } else {
-        // Generate new sub tree
-        const new_vdom = vdom.value();
+        const old_elem = vdom.elem;
 
-        // Compare old tree with new tree and update DOM elements accordingly
-        // The resulting root element is in new_vdom. It might be the same
-        // instance as the last one.
-        update(vdom, new_vdom);
+        update(vdom, vdom);
 
-        if (new_vdom.elem === null) {
+        if (vdom.elem === null) {
             throw new Error("Root vdom must always return an element");
         }
 
-        // Redraw is only called on already mounted trees, so just replace the
-        // old DOM element with the new one, if it was replaced
-        vdom.node = new_vdom.node;
-        if (vdom.elem !== new_vdom.elem && vdom.elem.parentNode !== null) {
-            vdom.elem.parentNode.replaceChild(vdom.elem, new_vdom.elem);
+        // TODO: This might not work with nested components - consider added/removed elements
+        if (vdom.elem !== old_elem && vdom.elem !== null && vdom.elem.parentNode !== null && old_elem !== null) {
+            vdom.elem.parentNode.replaceChild(old_elem, vdom.elem);
         }
     }
 }

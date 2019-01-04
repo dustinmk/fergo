@@ -1,16 +1,22 @@
-import {Vdom} from "./vdom";
+import {v, Vdom, VdomGenerator} from "./vdom";
 import update from "./update";
 
-export function mount(elem: HTMLElement, vdom: Vdom) {
-    if (typeof vdom.value !== "function") {
+export function mount(elem: HTMLElement, vdom: Vdom | VdomGenerator) {
+    if (typeof vdom === "function") {
+        mount(elem, v(vdom));
+    }
+
+    else if (vdom._type !== "VdomFunctional") {
         throw new Error("Root vdom must be functional");
     }
 
-    update(null, vdom);
-
-    if (vdom.elem === null) {
-        throw new Error("Vdom element could not be created");
+    else {
+        update(null, vdom);
+        
+        if (vdom.elem === null) {
+            throw new Error("Vdom element could not be created");
+        }
+    
+        elem.appendChild(vdom.elem);
     }
-
-    elem.appendChild(vdom.elem);
 }

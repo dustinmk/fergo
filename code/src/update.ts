@@ -1,61 +1,54 @@
-import {Vdom, VdomNode} from "./vdom";
+import {Vdom, VdomNode, VdomFunctional} from "./vdom";
 import {redraw} from "./redraw";
 
 export default update;
 
 // Compare old and new Vdom, then put updated elem on new_vdom
-// TODO: Handle function, vdom, string, null, undefined, boolean values
-// TODO: Refactor - shouldn't have to check children type twice
+// TODO: Support child arrays
 function update(old_vdom: Vdom | null, new_vdom: Vdom) {
-    /* Cases:
-        - new is function: check if result node instance is same as last, otherwise update(old, generated)
-        - new is null/undefined/false: error
-        - new is string: create and replace
-        - new is vdom:
-            - patch old&new. If old is string/null/undefined/false: create
-            - patch children. map keys of old&new, then walk sequentially calling update on each pair
-            - Rebind DOM elems as needed
-    */
-
-
-
-
-    const bound_vdom = old_vdom === null
-        ? new_vdom
-        : old_vdom;
-
-    if (typeof new_vdom.value === "function") {
-        new_vdom.node = new_vdom.value().node;
-        // TODO: Cutoff if new vdom is the same identity as the old one
+    if (new_vdom._type === "VdomFunctional") {
+        updateFunctionalVdom(old_vdom, new_vdom);
     }
 
-    if (new_vdom.node === null) {
-        throw new Error("New vdom node is null");
+    else if (new_vdom._type === "VdomText") {
+        if (old_vdom !== null && old_vdom._type === "VdomText" && new_vdom.text === old_vdom.text) {
+            new_vdom.elem = old_vdom.elem;
+        } else {
+            new_vdom.elem = createTextNode(new_vdom.text);
+        }
     }
 
-    if (old_vdom === null || old_vdom.node === null || old_vdom.elem === null) {
-        // Create new element
-        if (typeof new_vdom.node === "string") {
-            new_vdom.elem = createTextNode(new_vdom.node);
+    else if (new_vdom._type === "VdomNode") {
+        if (
+            old_vdom === null 
+            || old_vdom.elem === null 
+            || old_vdom._type === "VdomNull" 
+            || old_vdom._type === "VdomText" 
+            || (old_vdom._type === "VdomNode" && old_vdom.tag !== new_vdom.tag)
+        ) {
+            new_vdom.elem = createHTMLElement(new_vdom, new_vdom);
+
+        } else if (old_vdom._type === "VdomFunctional") {
+            update(old_vdom.instance, new_vdom);
+
         } else {
-            new_vdom.elem = createHTMLElement(new_vdom.node, bound_vdom);
+            new_vdom.elem = patchVdom(old_vdom, new_vdom);
         }
+    }
+}
 
-    } else {
-        if (typeof new_vdom.node === "string") {
-            // Create text node
-            new_vdom.elem = createTextNode(new_vdom.node);
-
-        } else {
-            if (typeof old_vdom.node === "string") {
-                // Replace element
-                new_vdom.elem = createHTMLElement(new_vdom.node, bound_vdom);
-
-            } else {
-                // Patch or replace element
-                new_vdom.elem = patchElement(old_vdom.elem, old_vdom.node, new_vdom.node, bound_vdom);
-            }
-        }
+function updateFunctionalVdom(old_vdom: Vdom | null, new_vdom: VdomFunctional) {
+    const generated = new_vdom.generator(new_vdom);
+    if (new_vdom.instance !== generated) {
+        update(
+            old_vdom !== null && old_vdom._type === "VdomFunctional"
+                ? old_vdom.instance
+                : old_vdom,
+            generated
+        );
+        new_vdom.instance = generated;
+        generated.parent = new_vdom;
+        new_vdom.elem = generated.elem;
     }
 }
 
@@ -63,109 +56,102 @@ function createTextNode(node: string) {
     return document.createTextNode(node);
 }
 
-function patchElement(elem: Node, old_node: VdomNode, new_node: VdomNode, bound_vdom: Vdom) {
-    if (old_node.tag !== new_node.tag) {
-        return createHTMLElement(new_node, bound_vdom);
+function patchVdom(old_vdom: VdomNode, new_vdom: VdomNode) {
+    if(old_vdom.elem === null) {
+        throw new Error("Old vdom in invalid state. This should not be reachable.");
     }
 
-    // Recursively call update() on best matching children
+    // TODO: Patch attributes, ID, classes, event handlers
 
-    // patchId(elem, old_node, new_node);
-    // patchClasses(elem, old_node, new_node);
-    // patchAttributes(elem, old_node, new_node);
-    patchChildren(elem, old_node, new_node);
-
-    return elem;
-}
-
-// TODO: Patch these attributes
-
-// function patchClasses(elem: HTMLElement, old_node: VdomNode, new_node: VdomNode) {
-// }
-
-// function patchId(elem: HTMLElement, old_node: VdomNode, new_node: VdomNode) {
-// }
-
-// function patchAttributes(elem: HTMLElement, old_node: VdomNode, new_node: VdomNode) {
-// }
-
-function patchChildren(elem: Node, old_node: VdomNode, new_node: VdomNode) {
-
-    // Call update() on children
-    // redraw child () => Vdom and prune if same node as last time
-
-    // Simple algo to start
-    // TODO: Use an edit distance metric
-    // TODO: Use key/id/name attibute to match nodes
-    // Use depth-first replace, cache elements and reuse as much as possible
-
-
-
-    // Start from index 0 and only go up
-    // Remove keyed elements from sequence and base on mapped keys instead
-    // Call update() uniformly on all children
-    // Allow for less or more items at end
-
-    let new_index = 0;
-    let old_index = 0;
-    while (new_index < new_node.children.length || old_index < old_node.children.length) {
-        const old_child_vdom = old_node.children[old_index];
-        const new_child_vdom = new_node.children[new_index];
-
-        if (new_index >= new_node.children.length) {
-
-            // Remove old_node[old_index]
-            old_child_vdom.elem !== null && elem.removeChild(old_child_vdom.elem);
-
-            ++old_index;
-
-        } else if (old_index >= old_node.children.length) {
-
-            // Append new_node[new_index]
-            update(null, new_child_vdom);
-            new_child_vdom.elem !== null && elem.appendChild(new_child_vdom.elem);
-
-            ++new_index;
-
-        } else if (isSame(old_child_vdom, new_child_vdom)) {
-
-            // Update old elem to new one
-            update(old_child_vdom, new_child_vdom);
-
-            ++new_index;
-            ++old_index;
-
-        } else {
-
-            // Remove old and insert new
-            update(null, new_child_vdom);
-            new_child_vdom.elem !== null && elem.insertBefore(new_child_vdom.elem, old_child_vdom.elem);
-            old_child_vdom.elem !== null && elem.removeChild(old_child_vdom.elem);
-            
-            ++new_index;
-            ++old_index;
+    // Map keys
+    const old_keys: {[index: string]: Vdom} = {};
+    for (const old_child of old_vdom.children) {
+        if (isVdomNode(old_child) && old_child.attributes.key !== undefined) {
+            old_keys[old_child.attributes.key] = old_child;
         }
     }
-}
 
-function isSame(old_vdom: Vdom, new_vdom: Vdom) {
-    if (old_vdom.node === new_vdom.node) {
-        return true;
+    // Update children
+    let old_index = 0;
+    let new_index = 0;
+    while (old_index < old_vdom.children.length || new_index < new_vdom.children.length) {
+        const old_child = old_vdom.children[old_index];
+        const new_child = new_vdom.children[new_index];
+
+        // Do these first to prevent performance problems when accessing past end of array
+
+        // Append
+        if (old_index >= old_vdom.children.length) {
+            update(null, new_child);
+            new_child.elem !== null && old_vdom.elem.appendChild(new_child.elem);
+            ++new_index;
+
+        // Remove at end
+        } else if (new_index >= new_vdom.children.length) {
+            old_child.elem !== null && old_vdom.elem.removeChild(old_child.elem);
+            ++old_index;
+
+        // Skip over old nodes if they were already mapped by key
+        } else if (isVdomNode(old_child) && old_child.attributes.key !== undefined) {
+            ++old_index;
+
+        // Lookup if already keyed, otherwise create new
+        } else if (isVdomNode(new_child) && new_child.attributes.key !== undefined) {
+            const old_mapped_child = old_keys[new_child.attributes.key];
+
+            if (new_child.attributes.key in old_keys) {
+                update(old_mapped_child, new_child);
+            } else {
+                update(null, new_child);
+            }
+
+            // TODO: Refactor - duplicated code
+            if (new_child.elem !== old_mapped_child.elem) {
+                if (new_child.elem !== null && old_mapped_child.elem !== null) {
+                    old_vdom.elem.replaceChild(new_child.elem, old_mapped_child.elem);
+                } else {
+                    const next_vdom = old_vdom.children.find((next_child, index) => {
+                        return index > old_index && next_child.elem !== null;
+                    });
+                    new_child.elem && old_vdom.elem.insertBefore(new_child.elem, next_vdom === undefined ? null : next_vdom.elem);
+                    old_mapped_child.elem && old_vdom.elem.removeChild(old_mapped_child.elem);
+                }
+            }
+
+            ++new_index;
+            
+        // Do index-based update if there is no key
+        } else {
+            update(old_child, new_child);
+
+            if (new_child.elem !== old_child.elem) {
+                if (new_child.elem !== null && old_child.elem !== null) {
+                    // New child is same instance as next old child?
+                    // TODO: See what happens if a node is added as a child twice
+                    // TOOD: Perhaps recreate node and reuse children?
+                    old_vdom.elem.replaceChild(new_child.elem, old_child.elem);
+                } else {
+                    const next_vdom = old_vdom.children.find((next_child, index) => {
+                        return index > old_index && next_child.elem !== null;
+                    });
+                    new_child.elem && old_vdom.elem.insertBefore(new_child.elem, next_vdom === undefined ? null : next_vdom.elem);
+                    old_child.elem && old_vdom.elem.removeChild(old_child.elem);
+                }
+            }
+
+            ++old_index;
+            ++new_index;
+        } 
     }
 
-    if (
-        old_vdom.node !== null 
-        && typeof old_vdom.node !== "string"
-        && new_vdom.node !== null
-        && typeof new_vdom.node !== "string"
-    ) {
-        return old_vdom.node.tag === new_vdom.node.tag;
-    }
-
-    return false;
+    return old_vdom.elem;
 }
 
-function createHTMLElement(node: VdomNode, vdom: Vdom) {
+function isVdomNode(vdom: Vdom | null): vdom is VdomNode {
+    return vdom !== null && vdom._type === "VdomNode";
+}
+
+function createHTMLElement(node: VdomNode, vdom: VdomNode) {
     if (node.tag === "") {
         throw new Error("Invlaid tag");
     }

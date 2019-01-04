@@ -2,15 +2,12 @@
 // TODO: Functional vdom should be passed vdom instance v = {value: (vdom) => Vdom}; n = v.value(v);
 // This will allow redraws easier, especially in an oninit() call
 
-export interface Vdom {
-    _type: "Vdom";
+export interface VdomBase {
     parent: Vdom | null;
     elem: Node | null;
-    value: VdomNode | VdomFunction | string;    // Value set by user
-    node: VdomNode | string | null;             // Value used internally
 }
 
-export interface VdomNode {
+export interface VdomNode extends VdomBase {
     _type: "VdomNode";
     tag: string;
     id: string | undefined;
@@ -19,37 +16,55 @@ export interface VdomNode {
     children: Vdom[];
 }
 
+export interface VdomFunctional extends VdomBase {
+    _type: "VdomFunctional";
+    generator: VdomGenerator;
+    instance: Vdom | null;
+}
+
+export interface VdomText extends VdomBase {
+    _type: "VdomText";
+    text: string;
+}
+
+export interface VdomNull extends VdomBase {
+    _type: "VdomNull";
+}
+
+export type Vdom = VdomNode | VdomFunctional | VdomText | VdomNull;
+
 interface Attributes {
     _type?: "Attributes";
+    key?: string;
 }
 
 interface CustomAttr {
     [index: string]: any;
 }
 
-export type VdomFunction = () => Vdom;
+export type VdomGenerator = (vdom: Vdom) => Vdom;
 
-export type Child = Vdom | VdomFunction | string | null | boolean;
+export type Child = Vdom | VdomGenerator | string | null | boolean;
 
 // TODO: Make string child a different custom attribute, not a child
-export function v(selector: VdomFunction): Vdom;
+export function v(selector: VdomGenerator): Vdom;
 export function v(selector: string): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes): Vdom;
 export function v(selector: string, children: Child[]): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child[]): Vdom;
 export function v(selector: string, children: Child): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child): Vdom;
-export function v(selector: string | VdomFunction, arg1?: CustomAttr & Attributes | Child[] | Child, arg2?: Child[] | Child): Vdom {
+export function v(selector: string | VdomGenerator, arg1?: CustomAttr & Attributes | Child[] | Child, arg2?: Child[] | Child): Vdom {
 
     // Shortcut if a functional component
     if(typeof selector === "function") {
         return {
-            _type: "Vdom",
+            _type: "VdomFunctional",
             parent: null,
             elem: null,
-            value: selector,
-            node: null,     // Lazy load instance
-        }
+            generator: selector,
+            instance: null
+        } as VdomFunctional
     }
 
     // Standardize arguments for v_impl()
@@ -62,7 +77,7 @@ export function v(selector: string | VdomFunction, arg1?: CustomAttr & Attribute
         children = [arg1];
     } else if (arg1 instanceof Array) {
         children = arg1;
-    } else if (arg1 !== null && typeof arg1 === "object" && arg1._type === "Vdom") {
+    } else if (arg1 !== null && typeof arg1 === "object" && arg1._type === "VdomNode") {
         children = [arg1];
     } else if (arg1 !== null && typeof arg1 === "object") {
         attributes = arg1;
@@ -82,8 +97,10 @@ export function v(selector: string | VdomFunction, arg1?: CustomAttr & Attribute
 function v_impl(selector: string, attributes: CustomAttr & Attributes, children: Child[]): Vdom {
 
     // Create the vdom
-    const vdom_node: VdomNode = {
+    const vdom: VdomNode = {
         _type: "VdomNode",
+        parent: null,
+        elem: null,
         tag: find_tag(selector),
         id: find_id(selector),
         classes: find_classes(selector),
@@ -91,34 +108,36 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
         children: []
     };
 
-    const vdom: Vdom = {
-        _type: "Vdom",
-        parent: null,
-        elem: null,
-        value: vdom_node,
-        node: vdom_node,
-    };
-
     // Add the children in
-    vdom_node.children = children.filter(child =>
-        child !== null && child !== undefined && child !== false && child !== true
-    ).map(child => {
+    vdom.children = children.map(child => {
+
+        // Use VdomNull as a placeholder for conditional nodes
         if (child === null || child === undefined || child === false || child === true) {
-            throw new Error("Filtering doesn't work apparantly.")
+            return {
+                _type: "VdomNull",
+                parent: vdom,
+                elem: null,
+            } as VdomNull;
         }
 
         // String and function children need a vdom manually created 
         // since v() wasn't called on them
-        if (typeof child === "string" || typeof child === "function") {
+        else if (typeof child === "string") {
             return {
-                _type: "Vdom",
-                parent: null,
+                _type: "VdomText",
+                parent: vdom,
                 elem: null,
-                value: child,
-                node: typeof child === "function"
-                    ? null
-                    : child
-            } as Vdom;
+                text: child
+            } as VdomText;
+
+        } else if(typeof child === "function") {
+            return {
+                _type: "VdomFunctional",
+                parent: vdom,
+                elem: null,
+                generator: child,
+                instance: null
+            } as VdomFunctional;
 
         // If a vdom was created through v(), just bind the parent
         }  else {
