@@ -20,13 +20,19 @@ class EventSource<Payload> {
 }
 
 abstract class Component {
-    private component: Vdom;
+    private component: Vdom = v(() => {
+        if(this.current_view === null) {
+            this.current_view = this.createView();
+        }
+        return this.current_view;
+    });
 
-    constructor() {
-        this.component = v(() => this.view());
-    }
+    private current_view: Vdom | null = null;
+
+    constructor() {}
 
     protected redraw() {
+        this.current_view = this.createView();
         redraw(this.component);
     }
 
@@ -44,22 +50,20 @@ abstract class Component {
     }
 }
 
-
 // Component
-class cDoc extends Component {
-    private text: string = "default text";
+const Doc = (text_source: EventSource<string>) => new (class extends Component {
+    private text: string;
 
     constructor(text_source: EventSource<string>) {
         super();
+        this.text = "default text";
         this.subscribe(text_source, text => this.text = text);
     }
 
     public createView() {
         return v("p", this.text);
     }
-}
-
-const Doc = (text_source: EventSource<string>) => new cDoc(text_source);
+})(text_source);
 
 // Model
 const text_event = new EventSource<string>();

@@ -242,6 +242,10 @@ function createHTMLElement(vdom: VdomNode) {
         }
     });
     
+    if ("oninit" in vdom.attributes && typeof vdom.attributes["oninit"] === "function") {
+        vdom.attributes["oninit"](vdom);
+    }
+
     return elem;
 }
 

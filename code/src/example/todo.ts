@@ -1,4 +1,4 @@
-import {v, redraw, mount} from "..";
+import {v, redraw, mount, Vdom} from "..";
 
 // Todo Model
 interface Todo {
@@ -12,8 +12,9 @@ let anotha = false;
 const todos: Array<Todo> = [{done: false, text: "eat pencil"}];
 
 // Todo View
-const root = v(() =>
-    v("div", [
+const view = (_: Vdom) => {
+    return v("div", {oninit: setAnothaOne}, [
+        v("p", "v1"),
         v("h1", "Todo Example"),
         v("input", {
             oninput: (evt: Event) => text = (<HTMLInputElement>evt.target).value
@@ -29,7 +30,19 @@ const root = v(() =>
             checked: anotha
         }),
         v("label", "Anotha one?")
-    ]))
+    ]);
+}
+
+// External changes example
+const setAnothaOne = (vdom: Vdom) => setInterval(() => {
+    if(anotha) {
+        todos.push({
+            done: false,
+            text: `Anotha one ${++count}`
+        });
+        redraw(vdom);
+    }
+}, 2000);
 
 // Other component
 const Todo = (todo: Todo) =>
@@ -37,16 +50,6 @@ const Todo = (todo: Todo) =>
         onclick: () => todo.done = !todo.done
     }, todo.text)
 
-// External changes example
-setInterval(() => {
-    if(anotha) {
-        todos.push({
-            done: false,
-            text: `Anotha one ${++count}`
-        });
-        redraw(root);
-    }
-}, 2000);
 
 // DOM Mounting
 const root_elem = document.getElementById("root");
@@ -54,4 +57,4 @@ if (root_elem === null) {
     throw Error("root div not found in HTML");
 }
 
-mount(root_elem, root);
+mount(root_elem, view);
