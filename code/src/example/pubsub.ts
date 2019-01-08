@@ -22,7 +22,7 @@ class EventSource<Payload> {
 abstract class Component {
     private component: Vdom = v(() => {
         if(this.current_view === null) {
-            this.current_view = this.createView();
+            this.current_view = this.render();
         }
         return this.current_view;
     });
@@ -32,7 +32,7 @@ abstract class Component {
     constructor() {}
 
     protected redraw() {
-        this.current_view = this.createView();
+        this.current_view = this.render();
         redraw(this.component);
     }
 
@@ -43,7 +43,7 @@ abstract class Component {
         });
     }
 
-    protected abstract createView(): Vdom;
+    protected abstract render(): Vdom;
 
     public view() {
         return this.component;
@@ -52,15 +52,14 @@ abstract class Component {
 
 // Component
 const Doc = (text_source: EventSource<string>) => new (class extends Component {
-    private text: string;
+    private text: string = "default text";
 
     constructor(text_source: EventSource<string>) {
         super();
-        this.text = "default text";
         this.subscribe(text_source, text => this.text = text);
     }
 
-    public createView() {
+    public render() {
         return v("p", this.text);
     }
 })(text_source);
