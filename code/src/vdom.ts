@@ -1,10 +1,8 @@
 // TODO: JSX compatible variant
-// TODO: Functional vdom should be passed vdom instance v = {value: (vdom) => Vdom}; n = v.value(v);
-// This will allow redraws easier, especially in an oninit() call
+// TODO: oninit(), onremove() hooks
 
 export interface VdomBase {
     parent: Vdom | null;
-    elem: Node | null;
 }
 
 export interface VdomNode extends VdomBase {
@@ -20,6 +18,7 @@ export interface VdomFunctional extends VdomBase {
     _type: "VdomFunctional";
     generator: VdomGenerator;
     instance: Vdom | null;
+    elem: Node | null;
 }
 
 export interface VdomText extends VdomBase {
@@ -100,7 +99,6 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
     const vdom: VdomNode = {
         _type: "VdomNode",
         parent: null,
-        elem: null,
         tag: find_tag(selector),
         id: find_id(selector),
         classes: find_classes(selector),
@@ -116,17 +114,13 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
             return {
                 _type: "VdomNull",
                 parent: vdom,
-                elem: null,
             } as VdomNull;
         }
 
-        // String and function children need a vdom manually created 
-        // since v() wasn't called on them
         else if (typeof child === "string") {
             return {
                 _type: "VdomText",
                 parent: vdom,
-                elem: null,
                 text: child
             } as VdomText;
 
@@ -139,7 +133,7 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
                 instance: null
             } as VdomFunctional;
 
-        // If a vdom was created through v(), just bind the parent
+        // If a vdom was already created through v(), just bind the parent
         }  else {
             child.parent = vdom;
             return child;

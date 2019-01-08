@@ -1,3 +1,3 @@
-export {VdomBase as Vdom, v} from "./vdom";
+export {Vdom, v} from "./vdom";
 export {mount} from "./mount";
-export {redraw} from "./redraw";
+export {redrawSync as redraw} from "./redraw";

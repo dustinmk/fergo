@@ -11,12 +11,12 @@ export function mount(elem: HTMLElement, vdom: Vdom | VdomGenerator) {
     }
 
     else {
-        update(null, vdom);
+        const child = update(null, null, vdom);
         
-        if (vdom.elem === null) {
+        if (child === null) {
             throw new Error("Vdom element could not be created");
         }
     
-        elem.appendChild(vdom.elem);
+        elem.appendChild(child);
     }
 }

@@ -32,7 +32,7 @@ const root = v(() =>
     ]))
 
 // Other component
-const Todo = (todo: Todo) => 
+const Todo = (todo: Todo) =>
     v(`li.${todo.done ? "todo_done" : "todo_not-done"}`, {
         onclick: () => todo.done = !todo.done
     }, todo.text)

@@ -7,7 +7,7 @@ import beautify from "js-beautify";
 
 chai.use(chaiDOM);
 
-describe("test test", () => {
+describe("Framework Test", () => {
     jsdom({url: "http://localhost"});
 
     it("Creates and updates p elem", () => {
@@ -142,6 +142,27 @@ describe("test test", () => {
             .to.have.text(["text 1", "text 2", "text 3"]);
     })
 
+    it("Handles mixed toggles", () => {
+        let toggle = true;
+        const root = v(() => v("div", [
+            !toggle && v("p", "second 1"),
+            v("p", "1"),
+            toggle && v("p", "first 1"),
+            v("p", "2")
+        ]));
+
+        mount(getRootElement(), root);
+        printDocument();
+        expect(document.querySelectorAll("p"))
+            .to.have.text(["1", "first 1", "2"]);
+
+        toggle = false;
+        redraw(root);
+        printDocument();
+        expect(document.querySelectorAll("p"))
+            .to.have.text(["second 1", "1", "2"]);
+    })
+
     it("Adds in the correct order", () => {
         let toggle = false;
         const root = v(() => v("div", [
@@ -169,31 +190,54 @@ describe("test test", () => {
 
     it("Handles variable child lists", () => {
 
-        const children = [
-            v("li", "1"),
-            v("li", "2")
-        ];
+        const c1 = v("li", "1");
+        const c2 = v("li", "2");
+        const c3 = v("li", "3");
 
+        let children = [c1, c2];
         const root = v(() => v("ul", children));
         mount(getRootElement(), root);
         printDocument();
         expect(document.querySelectorAll("li")).to.have.text(["1", "2"]);
 
-        // children.push(v("li", "2"));
-        // redraw(root);
-        // //mount(getRootElement(), root);
-        // printDocument();
-        // expect(document.querySelectorAll("li")).to.have.text(["1", "2"]);
+        children = [c1, c3, c2];
+        redraw(root);
+        printDocument();
+        expect(document.querySelectorAll("li")).to.have.text(["1", "3", "2"]);
 
-        children.splice(0, 1);
+        children = [c2, c1, c3];
+        redraw(root);
+        printDocument();
+        expect(document.querySelectorAll("li")).to.have.text(["2", "1", "3"]);
+
+        children = [c2];
         redraw(root);
         printDocument();
         expect(document.querySelectorAll("li")).to.have.text(["2"]);
 
-        children.splice(0, 1);
+        children = [];
         redraw(root);
         printDocument();
         expect(document.querySelectorAll("li")).to.have.text([]);
+    })
+
+    it("Reorders reused vdoms", () => {
+
+        const c1 = v("li", "1");
+        const c2 = v("li", "2");
+        const c3 = v("li", "3");
+
+        let children = [c1, c3, c2];
+        const root = v(() => v("ul", children));
+        mount(getRootElement(), root);
+        printDocument();
+        expect(document.querySelectorAll("li")).to.have.text(["1", "3", "2"]);
+
+        //children = [c2, c1, c3];
+        children = [{...c2}, {...c1}, {...c3}]
+        redraw(root);
+        printDocument();
+        expect(document.querySelectorAll("li")).to.have.text(["2", "1", "3"]);
     })
 
     it("Clears a variable list", () => {
@@ -414,6 +458,53 @@ describe("test test", () => {
         redraw(root);
         printDocument();
         expect(document.querySelectorAll("p")).to.have.text(["root", "second"]);
+    })
+
+    it("Rearranges keyed elements", () => {
+        const [c1, c2, c3, c4, c5, c6] = [1, 2, 3, 4, 5, 6].map(n => v("li", {key: n.toString()}, n.toString()));
+        let children = [c1, c2, c3, c4, c5, c6];
+        const root = v(() => v("ul", children));
+
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("li")).to.have.text(["1", "2", "3", "4", "5", "6"])
+
+        children = [c2, c4, c1, c5, c3, c6];
+        redraw(root);
+        expect(document.querySelectorAll("li")).to.have.text(["2", "4", "1", "5", "3", "6"])
+    })
+
+    it("Mixes keyed elements with non-keyed", () => {
+        const [k1, k2, k3, k4, k5, k6] = [1, 2, 3, 4, 5, 6].map(n => v("li", {key: n.toString()}, `k${n}`));
+        const [u1, u2, u3, u4, u5, u6] = [1, 2, 3, 4, 5, 6].map(n => v("li", `u${n}`));
+        let children = [k1, k2, u1, k3, u2, u3];
+        const root = v(() => v("ul", children));
+
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("li")).to.have.text(["k1", "k2", "u1", "k3", "u2", "u3"])
+
+        children = [k4, u3, k2, u1, u4, k5, u5, u6, k6];
+        redraw(root);
+        expect(document.querySelectorAll("li")).to.have.text(["k4", "u3", "k2", "u1", "u4", "k5", "u5", "u6", "k6"])
+    })
+
+    it("Removes keyed elements", () => {
+        const [k1, k2, k3] = [1, 2, 3].map(n => v("li", {key: `${n}`}, `${n}`))
+        let children = [k1, k2];
+        const root = v(() => v("ul", children));
+
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("li")).to.have.text(["1", "2"]);
+
+        children = [k3, k2];
+        redraw(root);
+        expect(document.querySelectorAll("li")).to.have.text(["3", "2"]);
+    })
+
+    it("Throws when keys not unique", () => {
+        expect(mount(getRootElement(), () => v("ul", [
+            v("li", {key: "1"}),
+            v("li", {key: "1"})
+        ]))).to.throw;
     })
 });
 
