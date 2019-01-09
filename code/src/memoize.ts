@@ -1,4 +1,4 @@
-import {Vdom, v} from "./vdom";
+import {Vdom} from "./vdom";
 
 /*
 If a component generates a deep or complex vdom instance,
