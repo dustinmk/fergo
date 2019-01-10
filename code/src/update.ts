@@ -1,10 +1,11 @@
-import {Vdom, VdomNode, VdomFunctional} from "./vdom";
+import {Vdom, VdomNode, VdomFunctional, Props} from "./vdom";
 import {redrawSync} from "./redraw";
 
 export default update;
 
 // Compare old and new Vdom, then put updated elem on new_vdom
 // TODO: Support child arrays
+// TODO: onremove()
 function update(old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom): Node | null {
     if (new_vdom._type === "VdomFunctional") {
         return updateFunctionalVdom(old_vdom, new_vdom);
@@ -45,10 +46,43 @@ function update(old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom): N
 }
 
 function updateFunctionalVdom(old_vdom: Vdom | null, new_vdom: VdomFunctional): Node {
-    const generated = new_vdom.generator(new_vdom);
+
+    // Don't redraw if passed props are the same
+    if(old_vdom !== null
+        && old_vdom._type === "VdomFunctional"
+        && old_vdom.generator === new_vdom.generator
+        && old_vdom.elem !== null
+        && new_vdom.props !== undefined
+    ) {
+        const do_update = new_vdom.props.shouldUpdate !== undefined
+            ? new_vdom.props.shouldUpdate(old_vdom.props, new_vdom.props)
+            : defaultShouldUpdate(old_vdom.props, new_vdom.props);
+
+        if (!do_update) {
+            new_vdom.instance = old_vdom.instance;
+            if(new_vdom.instance !== null) new_vdom.instance.parent = new_vdom;
+            new_vdom.elem = old_vdom.elem;
+            return new_vdom.elem;
+        }
+    }
+
+    // Reuse state from last time
+    // Components can store state onto the props in the generator
+    if (old_vdom !== null
+        && old_vdom._type === "VdomFunctional"
+        && old_vdom.props !== undefined
+        && old_vdom.props.state !== undefined
+    ) {
+        new_vdom.props.state = old_vdom.props.state;
+    }
+
+    // Otherwise, redraw if passed instance is the same
+    const generated = new_vdom.generator(new_vdom, new_vdom.props);
     if (new_vdom.instance !== generated) {
         new_vdom.elem = update(
-            new_vdom.elem,
+            old_vdom !== null && old_vdom._type === "VdomFunctional"
+                ? old_vdom.elem
+                : null,
             old_vdom !== null && old_vdom._type === "VdomFunctional"
                 ? old_vdom.instance
                 : old_vdom,
@@ -63,6 +97,19 @@ function updateFunctionalVdom(old_vdom: Vdom | null, new_vdom: VdomFunctional): 
     }
 
     return new_vdom.elem;
+}
+
+function defaultShouldUpdate(o: Props, n: Props) {
+    for (const key in o) {
+        if (o.hasOwnProperty(key)
+            && key !== "shouldUpdate"
+            && o[key] !== n[key]
+        ) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function createTextNode(node: string) {
@@ -202,8 +249,12 @@ function isElement(node: Node): node is Element {
     return "classList" in node;
 }
 
-function patchAttributes(elem: Element, _: VdomNode, new_vdom: VdomNode) {
-    elem.className = new_vdom.classes.join(" ");
+function patchAttributes(elem: Element, old_vdom: VdomNode, new_vdom: VdomNode) {
+    const old_classes = new Set(old_vdom.classes);
+    const new_classes = new Set(new_vdom.classes);
+    if(old_classes !== new_classes) {
+        elem.className = new_vdom.classes.join(" ");
+    }
 }
 
 function keyOf(vdom: Vdom | null) {
@@ -243,7 +294,7 @@ function createHTMLElement(vdom: VdomNode) {
     });
     
     if ("oninit" in vdom.attributes && typeof vdom.attributes["oninit"] === "function") {
-        vdom.attributes["oninit"](vdom);
+        vdom.attributes["oninit"](vdom, elem);
     }
 
     return elem;

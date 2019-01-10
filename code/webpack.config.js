@@ -51,5 +51,8 @@ module.exports = [
         }
     },
     example_base("pubsub"),
-    example_base("todo")
+    example_base("todo"),
+    example_base("benchmark"),
+    example_base("closure"),
+    example_base("state")
 ]

@@ -19,6 +19,7 @@ export interface VdomFunctional extends VdomBase {
     generator: VdomGenerator;
     instance: Vdom | null;
     elem: Node | null;
+    props: any;
 }
 
 export interface VdomText extends VdomBase {
@@ -32,6 +33,13 @@ export interface VdomNull extends VdomBase {
 
 export type Vdom = VdomNode | VdomFunctional | VdomText | VdomNull;
 
+export interface Props {
+    _type?: undefined;
+    state?: any;        // Components can store state here that they will have on next generator() call
+    shouldUpdate?: (old_props: any, new_props: any) => boolean;
+    [index: string]: any;
+}
+
 interface Attributes {
     _type?: "Attributes";
     key?: string;
@@ -41,19 +49,18 @@ interface CustomAttr {
     [index: string]: any;
 }
 
-export type VdomGenerator = (vdom: Vdom) => Vdom;
+export type VdomGenerator<PropType extends Props = Props> = (vdom: Vdom, props: PropType) => Vdom;
 
 export type Child = Vdom | VdomGenerator | string | null | boolean;
 
-// TODO: Make string child a different custom attribute, not a child
-export function v(selector: VdomGenerator): Vdom;
 export function v(selector: string): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes): Vdom;
 export function v(selector: string, children: Child[]): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child[]): Vdom;
 export function v(selector: string, children: Child): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child): Vdom;
-export function v(selector: string | VdomGenerator, arg1?: CustomAttr & Attributes | Child[] | Child, arg2?: Child[] | Child): Vdom {
+export function v<PropType extends Props>(selector: VdomGenerator<PropType>, props?: PropType): Vdom;
+export function v<PropType extends Props>(selector: string | VdomGenerator<PropType>, arg1?: CustomAttr & Attributes | Child[] | Child | Props, arg2?: Child[] | Child): Vdom {
 
     // Shortcut if a functional component
     if(typeof selector === "function") {
@@ -62,7 +69,8 @@ export function v(selector: string | VdomGenerator, arg1?: CustomAttr & Attribut
             parent: null,
             elem: null,
             generator: selector,
-            instance: null
+            instance: null,
+            props: arg1
         } as VdomFunctional
     }
 
@@ -76,7 +84,7 @@ export function v(selector: string | VdomGenerator, arg1?: CustomAttr & Attribut
         children = [arg1];
     } else if (arg1 instanceof Array) {
         children = arg1;
-    } else if (arg1 !== null && typeof arg1 === "object" && arg1._type === "VdomNode") {
+    } else if (arg1 !== null && typeof arg1 === "object" && arg1._type !== undefined && arg1._type === "VdomNode") {
         children = [arg1];
     } else if (arg1 !== null && typeof arg1 === "object") {
         attributes = arg1;

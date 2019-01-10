@@ -4,6 +4,7 @@ import jsdom from "mocha-jsdom";
 import {v, mount, redraw, Vdom} from "src/index";
 import chaiDOM from "chai-dom";
 import beautify from "js-beautify";
+import { Props, VdomGenerator } from "./vdom";
 
 chai.use(chaiDOM);
 
@@ -505,6 +506,115 @@ describe("Framework Test", () => {
             v("li", {key: "1"}),
             v("li", {key: "1"})
         ]))).to.throw;
+    })
+
+    it("Prevents redraw when props are not changed", () => {
+        interface PropType extends Props {
+            text: string;
+        }
+
+        let change_child = "change inner first";
+        let change_outer = "change outer first";
+
+        const child: VdomGenerator<PropType> = (_: Vdom, props: PropType) => v("div", [
+            v("p", props.text),
+            v("p", change_child)
+        ]);
+
+        const root = v(() => v("div", [
+            v(child, {text: "text"}),
+            v("p", change_outer)
+        ]))
+
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("p")).to.have.text(["text", "change inner first", "change outer first"])
+
+        change_child = "change inner second";
+        change_outer = "change outer second";
+        redraw(root);
+        expect(document.querySelectorAll("p")).to.have.text(["text", "change inner first", "change outer second"]) 
+    })
+
+    it("Redraws child when props change", () => {
+        interface PropType extends Props {
+            text: string;
+        }
+
+        let props = {text: "first"};
+
+        const child = (props: PropType) => v((_: Vdom, props: PropType) => v("div", [
+            v("p", props.text),
+        ]), {...props, shouldUpdate});
+
+        const shouldUpdate = (o: PropType, n: PropType) => o.text !== n.text;
+
+        const root = v(() => v("div", [
+            child(props),
+            v("p", "root")
+        ]))
+
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("p")).to.have.text(["first", "root"])
+
+        props = {text: "second"};
+        redraw(root);
+        expect(document.querySelectorAll("p")).to.have.text(["second", "root"]) 
+    })
+
+    it("Redraws child when generator changes", () => {
+        interface PropType extends Props {
+            text: string;
+        }
+
+        let props = {text: "text"};
+        let toggle = false;
+        const child1 = (_: Vdom, props: PropType) => v("div", [
+            v("p", "child1"),
+            v("p", props.text),
+        ]);
+
+        const child2 = (_: Vdom, props: PropType) => v("div", [
+            v("p", "child2"),
+            v("p", props.text),
+        ]);
+
+        const root = v(() => v("div", [
+            v(toggle ? child2 : child1, props),
+            v("p", "root")
+        ]))
+
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("p")).to.have.text(["child1", "text", "root"])
+
+        toggle = true;
+        redraw(root);
+        expect(document.querySelectorAll("p")).to.have.text(["child2", "text", "root"]) 
+    })
+
+    it.only("Uses state", () => {
+        interface PropType extends Props {
+            state: {count: number}
+        }
+
+        const generator = (_: Vdom, props: PropType) => {
+            props.state.count += 1;
+            return v("p", `${props.state.count}`)
+        }
+
+        const child = v(generator, {state: {count: 0}});
+
+        mount(getRootElement(), () => v("div", [
+            v("h1", "root"),
+            child
+        ]))
+        printDocument()
+        redraw(child)
+        printDocument()
+        redraw(child)
+        printDocument()
+        redraw(child)
+        printDocument()
+        expect(document.querySelectorAll("p")).to.have.text(["4"])
     })
 });
 

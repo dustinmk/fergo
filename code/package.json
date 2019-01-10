@@ -12,11 +12,13 @@
   "devDependencies": {
     "@types/chai": "^4.1.7",
     "@types/chai-dom": "0.0.7",
+    "@types/faker": "^4.1.4",
     "@types/jquery": "^3.3.28",
     "@types/mocha": "^5.2.5",
     "@types/sinon": "^5.0.5",
     "chai": "^4.2.0",
     "chai-dom": "^1.8.1",
+    "faker": "^4.1.0",
     "jquery": "^3.3.1",
     "js-beautify": "^1.8.9",
     "jsdom": "^13.0.0",
