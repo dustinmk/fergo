@@ -20,6 +20,19 @@ export interface VdomFunctional extends VdomBase {
     instance: Vdom | null;
     elem: Node | null;
     props: any;
+
+    // A child functional component can have many instances generated before its
+    // parent generates again. Each instance may have passed itself to event handlers.
+    // When the functional component is regenerated, the redraw() call should be applied
+    // to the new version, even if it is called on the instance of the old version.
+    // Otherwise, each previous instance must have its parent set.
+    // Another way would be for the event handlers to look up the current version.
+    updated: VdomFunctional | null;     // Linked list to most recent version
+    bindpoint: BindPoint;
+}
+
+export interface BindPoint {
+    binding: VdomFunctional;
 }
 
 export interface VdomText extends VdomBase {
@@ -64,14 +77,16 @@ export function v<PropType extends Props>(selector: string | VdomGenerator<PropT
 
     // Shortcut if a functional component
     if(typeof selector === "function") {
-        return {
+        const vdom = {
             _type: "VdomFunctional",
             parent: null,
             elem: null,
-            generator: selector,
+            generator: selector as VdomGenerator,
             instance: null,
-            props: arg1
-        } as VdomFunctional
+            props: arg1,
+            updated: null,
+        };
+        return Object.assign(vdom, {bindpoint: {binding: vdom}}) as VdomFunctional;
     }
 
     // Standardize arguments for v_impl()

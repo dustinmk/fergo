@@ -1,4 +1,4 @@
-import {Vdom, VdomNode, VdomFunctional, Props} from "./vdom";
+import {Vdom, VdomNode, VdomFunctional, Props, BindPoint} from "./vdom";
 import {redrawSync} from "./redraw";
 
 export default update;
@@ -6,7 +6,7 @@ export default update;
 // Compare old and new Vdom, then put updated elem on new_vdom
 // TODO: Support child arrays
 // TODO: onremove()
-function update(old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom): Node | null {
+function update(old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom, bindpoint: BindPoint): Node | null {
     if (new_vdom._type === "VdomFunctional") {
         return updateFunctionalVdom(old_vdom, new_vdom);
     }
@@ -32,13 +32,13 @@ function update(old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom): N
             || old_vdom._type === "VdomText" 
             || (old_vdom._type === "VdomNode" && old_vdom.tag !== new_vdom.tag)
         ) {
-            return createHTMLElement(new_vdom);
+            return createHTMLElement(new_vdom, bindpoint);
 
         } else if (old_vdom._type === "VdomFunctional") {
-            return update(old_elem, old_vdom.instance, new_vdom);
+            return update(old_elem, old_vdom.instance, new_vdom, bindpoint);
 
         } else {
-            return patchVdom(old_elem, old_vdom, new_vdom);
+            return patchVdom(old_elem, old_vdom, new_vdom, bindpoint);
         }
     }
 
@@ -46,6 +46,12 @@ function update(old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom): N
 }
 
 function updateFunctionalVdom(old_vdom: Vdom | null, new_vdom: VdomFunctional): Node {
+
+    // Share bindpoint as long as possible across all instances of this vdom
+    if (old_vdom !== null && old_vdom._type === "VdomFunctional") {
+        new_vdom.bindpoint = old_vdom.bindpoint;
+        new_vdom.bindpoint.binding = new_vdom;
+    }
 
     // Don't redraw if passed props are the same
     if(old_vdom !== null
@@ -78,6 +84,7 @@ function updateFunctionalVdom(old_vdom: Vdom | null, new_vdom: VdomFunctional): 
 
     // Otherwise, redraw if passed instance is the same
     const generated = new_vdom.generator(new_vdom, new_vdom.props);
+    generated.parent = new_vdom;
     if (new_vdom.instance !== generated) {
         new_vdom.elem = update(
             old_vdom !== null && old_vdom._type === "VdomFunctional"
@@ -86,10 +93,10 @@ function updateFunctionalVdom(old_vdom: Vdom | null, new_vdom: VdomFunctional): 
             old_vdom !== null && old_vdom._type === "VdomFunctional"
                 ? old_vdom.instance
                 : old_vdom,
-            generated
+            generated,
+            new_vdom.bindpoint
         );
         new_vdom.instance = generated;
-        generated.parent = new_vdom;
     }
 
     if (new_vdom.elem === null) {
@@ -116,7 +123,7 @@ function createTextNode(node: string) {
     return document.createTextNode(node);
 }
 
-function patchVdom(old_elem: Node, old_vdom: VdomNode, new_vdom: VdomNode) {
+function patchVdom(old_elem: Node, old_vdom: VdomNode, new_vdom: VdomNode, bindpoint: BindPoint) {
 
     // TODO: Patch attributes, ID, classes, event handlers
     if (isElement(old_elem)) {
@@ -190,8 +197,8 @@ function patchVdom(old_elem: Node, old_vdom: VdomNode, new_vdom: VdomNode) {
 
         // Update the child
         const new_node = old_child !== undefined
-            ? update(old_child.node, old_child.vdom, new_child)
-            : update(null, null, new_child);
+            ? update(old_child.node, old_child.vdom, new_child, bindpoint)
+            : update(null, null, new_child, bindpoint);
 
         if (new_node === null) {
             next_node !== null && old_elem.removeChild(next_node);
@@ -269,7 +276,7 @@ function keyOf(vdom: Vdom | null) {
     return null;
 }
 
-function createHTMLElement(vdom: VdomNode) {
+function createHTMLElement(vdom: VdomNode, bindpoint: BindPoint) {
     if (vdom.tag === "") {
         throw new Error("Invlaid tag");
     }
@@ -282,12 +289,12 @@ function createHTMLElement(vdom: VdomNode) {
 
     Object.keys(vdom.attributes).forEach(key => {
         if (vdom.attributes.hasOwnProperty(key)) {
-            applyAttribute(elem, key, vdom.attributes[key], vdom)
+            applyAttribute(elem, key, vdom.attributes[key], bindpoint)
         }
     });
 
     vdom.children.forEach(child => {
-        const child_elem = update(null, null, child);
+        const child_elem = update(null, null, child, bindpoint);
         if (child_elem !== null) {
             elem.appendChild(child_elem);
         }
@@ -306,11 +313,12 @@ function setAttributeIfExists(elem: HTMLElement, attribute: string, value: strin
     }
 }
 
-function applyAttribute(elem: Element, attribute: string, value: string | Function | boolean, vdom: Vdom) {
+function applyAttribute(elem: Element, attribute: string, value: string | Function | boolean, bindpoint: BindPoint) {
     if (typeof value === "function") {
         elem.addEventListener(eventName(attribute), (evt: Event) => {
-            value(evt, vdom);
-            redrawSync(vdom);
+            // Vdom received in second argument will always be to nearest VdomFunctional
+            value(evt, bindpoint.binding);
+            redrawSync(bindpoint.binding);
         });
 
     } else if (typeof value !== "boolean") {

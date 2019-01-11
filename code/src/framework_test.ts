@@ -591,7 +591,7 @@ describe("Framework Test", () => {
         expect(document.querySelectorAll("p")).to.have.text(["child2", "text", "root"]) 
     })
 
-    it.only("Uses state", () => {
+    it("Uses state", () => {
         interface PropType extends Props {
             state: {count: number}
         }

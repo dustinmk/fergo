@@ -20,7 +20,7 @@ const card_generator = (_: Vdom, props: CardProps) => {
 // TODO: Bug with unkeyed elements - "enabled" appears twice on a toggle edge
 // TODO: props, key, state should be parts of attributes
 // TODO: functional components should have keys to match state with
-const card = (name: string, key: number) => v(card_generator, {name, state: {toggle: true}})
+const card = (name: string) => v(card_generator, {name, state: {toggle: true}})
 
 const generate_list = () => {
     const list: string[] = [];
@@ -34,7 +34,8 @@ let name_list = generate_list();
 
 const root = v(() => v("div", [
     v("h1", "State example"),
-    v("ul", name_list.map((name, index) => card(name, key)))
+    v("button", {onclick: () => name_list = generate_list()}, "generate"),
+    v("ul", name_list.map((name) => card(name)))
 ]))
 
 setInterval(() => {
