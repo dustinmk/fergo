@@ -20,7 +20,7 @@ class App {
     public view() {
         return v("div", [
             v("p", "App"),
-            v(this.select_mode(), {})   // This will only redraw if the props change upon redraw of the top component
+            v(this.select_mode(), {props: {}, state: {}})   // This will only redraw if the props change upon redraw of the top component
         ]);
     }
 
@@ -35,7 +35,7 @@ class App {
 }
 
 class Categories {
-    private categories: Category[] = [];
+    // private categories: Category[] = [];
 
     public view() {
         return v("div", [
@@ -44,10 +44,10 @@ class Categories {
     }
 }
 
-interface Category {
-    name: string;
-    children: Category[];
-}
+// interface Category {
+//     name: string;
+//     children: Category[];
+// }
 
 // class Tree {
 

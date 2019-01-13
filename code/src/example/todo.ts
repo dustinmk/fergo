@@ -1,4 +1,5 @@
 import {v, redraw, mount, Vdom} from "..";
+import {UserVdom} from "../vdom"
 
 // Todo Model
 interface Todo {
@@ -12,7 +13,7 @@ let anotha = false;
 const todos: Array<Todo> = [{done: false, text: "eat pencil"}];
 
 // Todo View
-const view = (_: Vdom) => {
+const view = (_: UserVdom) => {
     return v("div", {oninit: setAnothaOne}, [
         v("p", "v1"),
         v("h1", "Todo Example"),

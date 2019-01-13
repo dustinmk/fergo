@@ -28,7 +28,7 @@ const example_base = (name) => ({
 module.exports = [
     {
         mode: "development",
-        entry: "./src/framework.ts",
+        entry: "./src/index.ts",
         devtool: "source-map",
         module: {
             rules: [

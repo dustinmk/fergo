@@ -36,7 +36,7 @@ export function redrawSync(vdom: Vdom) {
 
         // Force an update, ignoring if the same instance is returned
         // Only do this at the top level of a redraw cycle
-        const generated = vdom.generator(vdom, vdom.props);
+        const generated = vdom.generator(vdom);
         const elem = update(old_elem, vdom.instance, generated, vdom.bindpoint);
         vdom.instance = generated;
         generated.parent = vdom;
@@ -45,7 +45,8 @@ export function redrawSync(vdom: Vdom) {
             throw new Error("Root vdom must always return an element");
         }
 
-        // TODO: This might not work with nested components - consider added/removed elements
+        // The parent hasn't redrawn so it is the same as before. Components must
+        // return an element, so the parent element will always be there.
         if (old_elem !== elem && old_elem !== null && old_elem.parentNode !== null && elem !== null) {
             old_elem.parentNode.replaceChild(elem, old_elem);
         }

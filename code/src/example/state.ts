@@ -1,30 +1,30 @@
-import { Vdom, Props, v } from "src/vdom";
-import {mount, redraw} from "src/index";
+import {UserVdom, v } from "src/vdom";
+import {mount} from "src/index";
 import faker from "faker";
 
-interface CardProps extends Props {
-    state: {toggle: boolean},
-    name: string
+interface CardProps {
+    name: string;
 }
 
-const card_generator = (_: Vdom, props: CardProps) => {
+interface CardState {
+    toggle: boolean;
+}
+
+const card_generator = (vdom: UserVdom<CardProps, CardState>) => {
     return v("div", [
-        v("p", `Card ${props.name}`),
+        v("p", `Card ${vdom.props.name}`),
         v("button", {
-            onclick: () => props.state.toggle = !props.state.toggle
+            onclick: () => vdom.state.toggle = !vdom.state.toggle
         }, "Toggle"),
-        props.state.toggle && v("p", "enabled")
+        vdom.state.toggle && v("p", "enabled")
     ]);
 }
 
-// TODO: Bug with unkeyed elements - "enabled" appears twice on a toggle edge
-// TODO: props, key, state should be parts of attributes
-// TODO: functional components should have keys to match state with
-const card = (name: string) => v(card_generator, {name, state: {toggle: true}})
+const card = (name: string) => v(card_generator, {props: {name}, state: {toggle: true}, key: name})
 
 const generate_list = () => {
     const list: string[] = [];
-    for (let i = 0; i < 40; ++i) {
+    for (let i = 0; i < 3; ++i) {
         list.push(`${faker.name.firstName()} ${faker.name.lastName()}`)
     }
     return list;
@@ -34,14 +34,14 @@ let name_list = generate_list();
 
 const root = v(() => v("div", [
     v("h1", "State example"),
-    v("button", {onclick: () => name_list = generate_list()}, "generate"),
+    v("button", {onclick: () => name_list = faker.helpers.shuffle(name_list)}, "generate"),
     v("ul", name_list.map((name) => card(name)))
 ]))
 
-setInterval(() => {
-    name_list = generate_list();
-    redraw(root);
-}, 4000)
+// setInterval(() => {
+//     name_list = faker.helpers.shuffle(name_list);
+//     redraw(root);
+// }, 4000)
 
 const root_elem = document.getElementById("root");
 if (root_elem === null) {

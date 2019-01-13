@@ -1,4 +1,5 @@
-import {Vdom, mount, redraw, v} from "../index";
+import {mount, redraw, v} from "../index";
+import {UserVdom} from "../vdom";
 import faker from "faker";
 
 const MAX_INDEX = 10000;
@@ -15,11 +16,11 @@ const root = v(() => {
     ])
 })
 
-const child_generator = (_: Vdom, props: {text: string}) => {
-    return v("li", props.text)
+const child_generator = (vdom: UserVdom<{text: string}>) => {
+    return v("li", vdom.props.text)
 }
 
-const child = (props: {text: string}) => v(child_generator, props)
+const child = (props: {text: string}) => v(child_generator, {props, state: {}})
 
 setInterval(() => {
     const index = Math.floor(Math.random() * list.length);

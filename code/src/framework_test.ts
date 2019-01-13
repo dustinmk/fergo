@@ -1,10 +1,10 @@
 import chai, {expect} from "chai";
 import * as sinon from "sinon";
 import jsdom from "mocha-jsdom";
-import {v, mount, redraw, Vdom} from "src/index";
+import {v, mount, redraw} from "src/index";
 import chaiDOM from "chai-dom";
 import beautify from "js-beautify";
-import { Props, VdomGenerator } from "./vdom";
+import { UserVdom } from "./vdom";
 
 chai.use(chaiDOM);
 
@@ -438,7 +438,7 @@ describe("Framework Test", () => {
 
     it("Redraws from passed in vdom", () => {
         let text = "first";
-        let root: Vdom | null = null;
+        let root: UserVdom | null = null;
 
         mount(getRootElement(), (vdom) => {
             root = vdom;
@@ -509,20 +509,20 @@ describe("Framework Test", () => {
     })
 
     it("Prevents redraw when props are not changed", () => {
-        interface PropType extends Props {
+        interface PropType {
             text: string;
         }
 
         let change_child = "change inner first";
         let change_outer = "change outer first";
 
-        const child: VdomGenerator<PropType> = (_: Vdom, props: PropType) => v("div", [
-            v("p", props.text),
+        const child = (vdom: UserVdom<PropType>) => v("div", [
+            v("p", vdom.props.text),
             v("p", change_child)
         ]);
 
         const root = v(() => v("div", [
-            v(child, {text: "text"}),
+            v(child, {props: {text: "text"}}),
             v("p", change_outer)
         ]))
 
@@ -536,15 +536,15 @@ describe("Framework Test", () => {
     })
 
     it("Redraws child when props change", () => {
-        interface PropType extends Props {
+        interface PropType {
             text: string;
         }
 
         let props = {text: "first"};
 
-        const child = (props: PropType) => v((_: Vdom, props: PropType) => v("div", [
-            v("p", props.text),
-        ]), {...props, shouldUpdate});
+        const child = (props: PropType) => v((vdom: UserVdom<PropType>) => v("div", [
+            v("p", vdom.props.text),
+        ]), {props, shouldUpdate});
 
         const shouldUpdate = (o: PropType, n: PropType) => o.text !== n.text;
 
@@ -562,24 +562,24 @@ describe("Framework Test", () => {
     })
 
     it("Redraws child when generator changes", () => {
-        interface PropType extends Props {
+        interface PropType {
             text: string;
         }
 
         let props = {text: "text"};
         let toggle = false;
-        const child1 = (_: Vdom, props: PropType) => v("div", [
+        const child1 = (vdom: UserVdom<PropType>) => v("div", [
             v("p", "child1"),
-            v("p", props.text),
+            v("p", vdom.props.text),
         ]);
 
-        const child2 = (_: Vdom, props: PropType) => v("div", [
+        const child2 = (vdom: UserVdom<PropType>) => v("div", [
             v("p", "child2"),
-            v("p", props.text),
+            v("p", vdom.props.text),
         ]);
 
         const root = v(() => v("div", [
-            v(toggle ? child2 : child1, props),
+            v(toggle ? child2 : child1, {props}),
             v("p", "root")
         ]))
 
@@ -592,13 +592,13 @@ describe("Framework Test", () => {
     })
 
     it("Uses state", () => {
-        interface PropType extends Props {
-            state: {count: number}
+        interface StateType {
+            count: number;
         }
 
-        const generator = (_: Vdom, props: PropType) => {
-            props.state.count += 1;
-            return v("p", `${props.state.count}`)
+        const generator = (vdom: UserVdom<{}, StateType>) => {
+            vdom.state.count += 1;
+            return v("p", `${vdom.state.count}`)
         }
 
         const child = v(generator, {state: {count: 0}});

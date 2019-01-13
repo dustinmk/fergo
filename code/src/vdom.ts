@@ -5,34 +5,55 @@ export interface VdomBase {
     parent: Vdom | null;
 }
 
+interface ClassList {
+    [index: string]: string;
+}
+
 export interface VdomNode extends VdomBase {
     _type: "VdomNode";
     tag: string;
     id: string | undefined;
     attributes: CustomAttr & Attributes;
-    classes: string[];
+    classes: ClassList;
     children: Vdom[];
 }
 
-export interface VdomFunctional extends VdomBase {
+export interface UserVdom<PropType extends {[index: string]: any}= {}, StateType = {}> {
+    _type?: "VdomFunctional";
+    props: PropType;
+    state: StateType;
+    key?: string;
+    shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
+}
+
+export interface UserSupplied<PropType, StateType> {
+    props?: PropType;
+    state?: StateType;
+    key?: string;
+    shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
+}
+
+export interface VdomFunctionalBase extends VdomBase {
     _type: "VdomFunctional";
-    generator: VdomGenerator;
+    generator: VdomGenerator<any, any>;
     instance: Vdom | null;
     elem: Node | null;
-    props: any;
 
     // A child functional component can have many instances generated before its
     // parent generates again. Each instance may have passed itself to event handlers.
     // When the functional component is regenerated, the redraw() call should be applied
     // to the new version, even if it is called on the instance of the old version.
-    // Otherwise, each previous instance must have its parent set.
-    // Another way would be for the event handlers to look up the current version.
-    updated: VdomFunctional | null;     // Linked list to most recent version
+    // Otherwise, each previous instance must have its parent set. This bindpoint is
+    // shared across all instances of a functional component and it has its binding
+    // reset to the current node for every redraw()
     bindpoint: BindPoint;
 }
 
+export type VdomFunctional<PropType extends {[index: string]: any}, StateType>
+    = VdomFunctionalBase & UserVdom<PropType, StateType>;
+
 export interface BindPoint {
-    binding: VdomFunctional;
+    binding: VdomFunctionalBase;
 }
 
 export interface VdomText extends VdomBase {
@@ -44,14 +65,7 @@ export interface VdomNull extends VdomBase {
     _type: "VdomNull";
 }
 
-export type Vdom = VdomNode | VdomFunctional | VdomText | VdomNull;
-
-export interface Props {
-    _type?: undefined;
-    state?: any;        // Components can store state here that they will have on next generator() call
-    shouldUpdate?: (old_props: any, new_props: any) => boolean;
-    [index: string]: any;
-}
+export type Vdom = VdomNode | VdomFunctional<any, any> | VdomText | VdomNull;
 
 interface Attributes {
     _type?: "Attributes";
@@ -62,31 +76,46 @@ interface CustomAttr {
     [index: string]: any;
 }
 
-export type VdomGenerator<PropType extends Props = Props> = (vdom: Vdom, props: PropType) => Vdom;
+export type VdomGenerator<PropType, StateType>
+    = (vdom: UserVdom<PropType, StateType>) => Vdom;
 
-export type Child = Vdom | VdomGenerator | string | null | boolean;
+export type Child = Vdom | VdomGenerator<any, any> | string | null | boolean;
 
+// TOOD: Replace with UserSupplied<>
 export function v(selector: string): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes): Vdom;
 export function v(selector: string, children: Child[]): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child[]): Vdom;
 export function v(selector: string, children: Child): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child): Vdom;
-export function v<PropType extends Props>(selector: VdomGenerator<PropType>, props?: PropType): Vdom;
-export function v<PropType extends Props>(selector: string | VdomGenerator<PropType>, arg1?: CustomAttr & Attributes | Child[] | Child | Props, arg2?: Child[] | Child): Vdom {
+export function v<PropType, StateType>(selector: VdomGenerator<PropType, StateType>, props?: UserSupplied<PropType, StateType>): Vdom;
+export function v<PropType, StateType>(
+    selector: string | VdomGenerator<PropType, StateType>,
+    arg1?: CustomAttr & Attributes | Child[] | Child | UserVdom<PropType, StateType>,
+    arg2?: Child[] | Child
+): Vdom {
 
     // Shortcut if a functional component
     if(typeof selector === "function") {
-        const vdom = {
+        let vdom = {
             _type: "VdomFunctional",
             parent: null,
             elem: null,
-            generator: selector as VdomGenerator,
-            instance: null,
-            props: arg1,
-            updated: null,
+            generator: selector,
+            instance: null
         };
-        return Object.assign(vdom, {bindpoint: {binding: vdom}}) as VdomFunctional;
+        const bindpoint = {bindpoint: {
+            binding: (vdom as unknown) as VdomFunctional<PropType, StateType>
+        }};
+
+        if (isUserSupplied(arg1)) {
+            return Object.assign(
+                vdom,
+                arg1,
+                bindpoint
+            );
+        }
+        return Object.assign(vdom, bindpoint, {state: null, props: null}) as VdomFunctional<any, any>;
     }
 
     // Standardize arguments for v_impl()
@@ -114,6 +143,14 @@ export function v<PropType extends Props>(selector: string | VdomGenerator<PropT
     }
 
     return v_impl(selector, attributes, children);
+}
+
+function isUserSupplied<PropType, StateType>(arg?: CustomAttr & Attributes | Child[] | Child | UserSupplied<PropType, StateType>): arg is UserSupplied<PropType, StateType> {
+    return arg !== undefined
+        && typeof arg === "object"
+        && !Array.isArray(arg)
+        && arg !== null
+        && ("key" in arg || "props" in arg || "state" in arg)
 }
 
 function v_impl(selector: string, attributes: CustomAttr & Attributes, children: Child[]): Vdom {
@@ -148,13 +185,19 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
             } as VdomText;
 
         } else if(typeof child === "function") {
-            return {
+            const functional_vdom = {
                 _type: "VdomFunctional",
                 parent: vdom,
                 elem: null,
                 generator: child,
-                instance: null
-            } as VdomFunctional;
+                instance: null,
+                state: null,
+                props: null,
+            };
+            
+            return Object.assign(functional_vdom, {bindpoint: {
+                binding: (functional_vdom as unknown) as VdomFunctional<any, any>
+            }}) as VdomFunctional<any, any>;
 
         // If a vdom was already created through v(), just bind the parent
         }  else {
@@ -199,6 +242,10 @@ function find_classes(selector: string) {
         return [];
     }
 
-    return matches.map(match => match.slice(1));
+    return matches.reduce((acc: ClassList, match) => {
+        const c = match.slice(1);
+        acc[c] = c;
+        return acc;
+    }, {});
 }
 

@@ -1,4 +1,5 @@
 import {v, redraw, mount, Vdom} from "..";
+import {UserVdom} from "../vdom";
 
 // Set Up
 class DataSource<Payload> {
@@ -30,10 +31,7 @@ abstract class Component<PropType extends object = {}> {
         throw new Error("Must initiate component with view()");
     });
 
-    // private current_view: Vdom | null = null;
-    protected props: PropType | null = null;
-
-    constructor() {}
+    constructor(protected props: PropType) {}
 
     protected redraw() {
         redraw(this.component);
@@ -53,83 +51,61 @@ abstract class Component<PropType extends object = {}> {
     }
 
     // Return component-style vdom: v((vdom, props) => vdom, props)
-    public view(provided_props: PropType | (() => PropType)) {
-        const new_props = typeof provided_props !== "object"
-            ? provided_props()
-            : provided_props;
-
-        this.component = v((_: Vdom, props: PropType) => {
-            return this.render(props)
-        }, Object.assign(new_props, {shouldUpdate: this.shouldUpdate}));
-        return this.component;
+    public view() {
+        return this.render(this.props);
     }
 
-    // Create a static vdom rather than redrawing when props are received.
-    // Child components may still redraw with updated props if using the
-    // prop accessor pattern: Component().view(() => ({...this.props}))
-    protected defer(vdom: Vdom) {
-        return (props: PropType) => {
-            this.props = props;
-
-            // Copy the root vdom so it passes through the diff algorithm
-            // If it was the same instance, it would be ignored
-            return {...vdom};
-        }
-    }
-
-    // Conditionally select a result lazily using the defer() pattern.
-    // Results are only evaulated as needed.
-    protected cond(c: () => boolean, iftrue: () => Vdom, iffalse?: () => Vdom) {
-        let iftrue_inst: Vdom | null = null;
-        let iffalse_inst: Vdom | null = null;
-
-        return () => {
-            if (c()) {
-                if (iftrue_inst === null) {
-                    iftrue_inst = iftrue();
-                }
-                return iftrue_inst;
-            } else {
-                if (iffalse_inst === null && iffalse !== undefined) {
-                    iffalse_inst = iffalse();
-                }
-                return iffalse;
+    static MakeComponent<PropType, ComponentType extends Component>(component: new (props: PropType) => ComponentType) {
+        // Create the generator once so that it compares with itself equally when checking
+        // if the instance should get new props or be replaced
+        const generator = (vdom: UserVdom<PropType, ComponentType | null>) => {
+            if (vdom.state === null) {
+                vdom.state = new component(vdom.props);
             }
+            vdom.state.props = vdom.props;
+            vdom.state.component = vdom as Vdom;
+            return vdom.state.view()
+        };
+
+        return (props: PropType) => {
+            return v(generator, {props, state: null, shouldUpdate: (o: PropType, n: PropType, s: ComponentType | null) => {
+                if (s !== null) {
+                    return s.shouldUpdate(o, n);
+                }
+                return true;
+            }});
         }
     }
-
-    // Store a map 
-    // protected list<ItemType>(items: () => ItemType[], key: (item: ItemType) => string, map: (item: ItemType) => Vdom) {
-
-    // }
 }
 
+
 // Component
-interface Props {
+interface MyProps {
     prop: string;
+    text_source: DataSource<string>;
 }
 
 // TODO: State should be set as 'this' on generator so d = new Doc(); v(d.view, {state: this}); will work
 
-const Doc = (text_source: DataSource<string>) => new (class extends Component<Props> {
+class _Doc extends Component<MyProps> {
     private text: string = "default text";
 
-    constructor(text_source: DataSource<string>) {
-        super();
-        this.subscribe(text_source, text => this.text = text);
+    constructor(props: MyProps) {
+        super(props);
+        this.subscribe(props.text_source, text => this.text = text);
     }
 
     // defer() pattern. Dynamic elements must be functional since the
     // root element is static. This helps when putting components inline
     // when they must not be created more than once, or when there are 
     // large static DOM trees that change in very minor ways
-    render = this.defer(v("div", [
-        () => v("p", this.text),
-        () => v("p", this.props && this.props.prop),
+    render = () => v("div", [
+        v("p", this.text),
+        v("p", this.props && this.props.prop),
+    ]);
+}
 
-        // cond(() => show, () => Component().view(() => props)    // Component() will only be called once
-    ]))
-})(text_source);
+const Doc = Component.MakeComponent(_Doc);
 
 // Model
 const text_event = new DataSource<string>("init text");
@@ -148,34 +124,28 @@ setInterval(() => {
 // TODO: Example with memoized components - store memoized at top, then call it with
 //      props inside
 
-const root = new (class extends Component {
+class Root extends Component<{}> {
     private prop_value = 0;
 
     constructor() {
-        super();
+        super({});
     }
 
     render = () => v("div", [
         v("h1", "PubSub Example"),
         v("button", {onclick: () => this.prop_value += 1}, "inc"),
-
-        // A new Doc() will be created every time new props are available for
-        // this component. This is fine since the component's state is from
-        // the constructor and subscriptions. The subscriptions provide the
-        // current value when first registering. If the component must not
-        // be recreated on a render, it can be created in the constructor, then
-        // used here, still passing props. ALternatively, the defer() pattern 
-        // can be used.
-        Doc(text_event).view(() => ({prop: `${this.prop_value}`}))
+        Doc({text_source: text_event, prop: `${this.prop_value}`})
     ]);
-})();
+};
+
+const root = new Root();
 
 // Mount
 const root_elem = document.getElementById("root");
 if (root_elem === null) {
     throw Error("root div not found in HTML");
 }
-mount(root_elem, root.view({}));
+mount(root_elem, () => root.view());
 
 /*
 If a component receives new props, it will have to rerender the vdom regardless
