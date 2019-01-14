@@ -5,7 +5,7 @@ export interface VdomBase {
     parent: Vdom | null;
 }
 
-interface ClassList {
+export interface ClassList {
     [index: string]: string;
 }
 
@@ -67,9 +67,10 @@ export interface VdomNull extends VdomBase {
 
 export type Vdom = VdomNode | VdomFunctional<any, any> | VdomText | VdomNull;
 
-interface Attributes {
+export interface Attributes {
     _type?: "Attributes";
     key?: string;
+    [index: string]: any;
 }
 
 interface CustomAttr {
