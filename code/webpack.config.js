@@ -1,5 +1,7 @@
 const path = require("path");
 
+// TODO: Closure Compiler
+
 const example_base = (name) => ({
     mode: "development",
     entry: `./src/example/${name}.ts`,

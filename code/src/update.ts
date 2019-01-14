@@ -1,12 +1,10 @@
 import {Vdom, VdomNode, VdomText, VdomFunctional, VdomFunctionalBase, UserVdom, BindPoint, Attributes, ClassList} from "./vdom";
 import {redrawSync} from "./redraw";
 
-export default update;
-
 // Compare old and new Vdom, then put updated elem on new_vdom
 // TODO: Support child arrays
 // TODO: onremove()
-function update(old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom, bindpoint: BindPoint): Node | null {
+const update = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom, bindpoint: BindPoint): Node | null => {
     if (new_vdom._type === "VdomFunctional") {
         return updateFunctionalVdom(old_vdom, new_vdom);
     }
@@ -36,7 +34,7 @@ function update(old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom, bi
     return null;
 }
 
-function updateTextNode(old_elem: Node | null, old_vdom: Vdom | null, new_vdom: VdomText) {
+const updateTextNode = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: VdomText) => {
     if (old_elem !== null && old_vdom !== null && old_vdom._type === "VdomText") {
         if (new_vdom.text !== old_vdom.text) {
             old_elem.nodeValue = new_vdom.text;
@@ -48,7 +46,7 @@ function updateTextNode(old_elem: Node | null, old_vdom: Vdom | null, new_vdom: 
     }
 }
 
-function updateFunctionalVdom(old_vdom: Vdom | null, new_vdom: VdomFunctional<any, any>): Node {
+const updateFunctionalVdom = (old_vdom: Vdom | null, new_vdom: VdomFunctional<any, any>): Node => {
 
     // Share bindpoint as long as possible across all instances of this vdom
     if (old_vdom !== null && old_vdom._type === "VdomFunctional") {
@@ -104,7 +102,7 @@ function updateFunctionalVdom(old_vdom: Vdom | null, new_vdom: VdomFunctional<an
     return new_vdom.elem;
 }
 
-function shouldUpdate<PropType>(old_vdom: UserVdom<PropType>, new_vdom: UserVdom<PropType>) {
+const shouldUpdate = <PropType>(old_vdom: UserVdom<PropType>, new_vdom: UserVdom<PropType>) => {
     if (new_vdom.shouldUpdate !== undefined) {
         return new_vdom.shouldUpdate(old_vdom.props, new_vdom.props, new_vdom.state);
     }
@@ -134,7 +132,7 @@ interface NodePair {
 }
 
 // TODO: Array.shift() is much slower than Array.pop()
-function patchVdom(elem: Node, old_vdom: VdomNode, new_vdom: VdomNode, bindpoint: BindPoint) {
+const patchVdom = (elem: Node, old_vdom: VdomNode, new_vdom: VdomNode, bindpoint: BindPoint) => {
     if (isElement(elem)) {
         patchClasses(elem, old_vdom.classes, new_vdom.classes);
         patchId(elem, old_vdom.id, new_vdom.id);
@@ -227,8 +225,9 @@ const mapVdomToDOM = (elem: Node, vdom: VdomNode) => {
 }
 
 const getChildElems = (elem: Node) => {
-    const child_elems: Node[] = [];
-    elem.childNodes.forEach(node => child_elems.push(node));
+    const child_elems: Node[] = new Array(elem.childNodes.length);
+    let index = 0;
+    elem.childNodes.forEach(node => child_elems[index++] = node);
     return child_elems;
 }
 
@@ -281,7 +280,7 @@ const removeExtraKeyed = (elem: Node, keyed: {[index: string]: NodePair}) => {
     }
 }
 
-function createHTMLElement(vdom: VdomNode, bindpoint: BindPoint) {
+const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint) => {
     if (vdom.tag === "") {
         throw new Error("Invlaid tag");
     }
@@ -306,7 +305,7 @@ function createHTMLElement(vdom: VdomNode, bindpoint: BindPoint) {
     return elem;
 }
 
-function patchClasses(elem: Element, old_classes: ClassList, new_classes: ClassList) {
+const patchClasses = (elem: Element, old_classes: ClassList, new_classes: ClassList) => {
     Object.keys(new_classes).forEach(c => {
         if (! (c in old_classes) ) {
             elem.classList.add(c);
@@ -320,7 +319,7 @@ function patchClasses(elem: Element, old_classes: ClassList, new_classes: ClassL
     })
 }
 
-function patchId(elem: Element, old_id: string | undefined, new_id: string | undefined) {
+const patchId = (elem: Element, old_id: string | undefined, new_id: string | undefined) => {
     if (old_id !== undefined && new_id === undefined) {
         elem.removeAttribute("id")
     } else if (old_id !== new_id && new_id !== undefined) {
@@ -329,7 +328,7 @@ function patchId(elem: Element, old_id: string | undefined, new_id: string | und
 }
 
 const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "id"]);
-function patchAttributes(elem: Element, old_attr: Attributes, new_attr: Attributes, bindpoint: BindPoint) {
+const patchAttributes = (elem: Element, old_attr: Attributes, new_attr: Attributes, bindpoint: BindPoint) => {
     Object.entries(new_attr).forEach(([key, value]: [string, any]) => {
         if (!EXCLUDED_ATTR.has(key)) {
             const old_value = old_attr[key];
@@ -374,15 +373,15 @@ function patchAttributes(elem: Element, old_attr: Attributes, new_attr: Attribut
     })
 }
 
-function isVdomFunctional(vdom: VdomFunctionalBase | VdomFunctional<any, any>): vdom is VdomFunctional<any, any> {
+const isVdomFunctional = (vdom: VdomFunctionalBase | VdomFunctional<any, any>): vdom is VdomFunctional<any, any> => {
     return "state" in vdom && "props" in vdom;
 }
 
-function isElement(node: Node): node is Element {
+const isElement = (node: Node): node is Element => {
     return "classList" in node;
 }
 
-function eventName(key: string) {
+const eventName = (key: string) => {
     const regex_result = key.match(/on([\w]+)/);
     if(regex_result === null || regex_result.length < 2) {
         throw new Error(`Invalid handler: ${key}`);
@@ -390,7 +389,7 @@ function eventName(key: string) {
     return regex_result[1];
 }
 
-function keyOf(vdom: Vdom | null) {
+const keyOf = (vdom: Vdom | null) => {
     if (vdom === null) {
         return null;
     }
@@ -405,3 +404,5 @@ function keyOf(vdom: Vdom | null) {
 
     return null;
 }
+
+export default update;
