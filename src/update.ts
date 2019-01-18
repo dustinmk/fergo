@@ -3,7 +3,12 @@ import {redraw} from "./redraw";
 
 // Compare old and new Vdom, then put updated elem on new_vdom
 // TODO: Support child arrays
-const update = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom | null, bindpoint: BindPoint | null): Node | null => {
+const update = (
+    old_elem: Node | null,
+    old_vdom: Vdom | null,
+    new_vdom: Vdom | null,
+    bindpoint: BindPoint | null
+): Node | null => {
     if (new_vdom === null 
         || new_vdom._type === "VdomNull" 
         || (old_vdom !== null && new_vdom._type !== old_vdom._type)
@@ -28,24 +33,7 @@ const update = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom | n
             throw new Error("Bindpoint must not be null");
         }
 
-        if (
-            old_elem === null 
-            || old_vdom === null 
-            || old_vdom._type === "VdomNull" 
-            || old_vdom._type === "VdomText" 
-            || (old_vdom._type === "VdomNode" && old_vdom.tag !== new_vdom.tag)
-        ) {
-            if (old_elem !== null) {
-                updateNullNode(old_elem, old_vdom);
-            }
-            return createHTMLElement(new_vdom, bindpoint);
-
-        } else if (old_vdom._type === "VdomFunctional") {
-            return update(old_elem, old_vdom.instance, new_vdom, bindpoint);
-
-        } else {
-            return patchVdom(old_elem, old_vdom, new_vdom, bindpoint);
-        }
+        return updateNode(old_elem, old_vdom, new_vdom, bindpoint);
     }
 
     return null;
@@ -84,7 +72,11 @@ const updateNullNode = (old_elem: Node, old_vdom: Vdom | null) => {
     }
 }
 
-const updateTextNode = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: VdomText) => {
+const updateTextNode = (
+    old_elem: Node | null,
+    old_vdom: Vdom | null,
+    new_vdom: VdomText
+) => {
     if (old_elem !== null && old_vdom !== null && old_vdom._type === "VdomText") {
         if (new_vdom.text !== old_vdom.text) {
             old_elem.nodeValue = new_vdom.text;
@@ -96,70 +88,49 @@ const updateTextNode = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: 
     }
 }
 
-const updateFunctionalVdom = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: VdomFunctional<any, any>): Node => {
+const updateFunctionalVdom = (
+    old_elem: Node | null,
+    old_vdom: Vdom | null,
+    new_vdom: VdomFunctional<any, any>
+): Node => {
 
     // Share bindpoint as long as possible across all instances of this vdom
+    // The bindpoint should be shared even for different generators since some
+    // DOM elements may still be share between instances
     if (old_vdom !== null && old_vdom._type === "VdomFunctional") {
         new_vdom.bindpoint = old_vdom.bindpoint;
         new_vdom.bindpoint.binding = new_vdom;
     }
 
-    // Reuse state from last time
-    // Components can store state in the generator
+    // Update old
     if (old_vdom !== null
         && old_vdom._type === "VdomFunctional"
         && old_vdom.generator === new_vdom.generator
-        && old_vdom.state !== undefined
     ) {
+        // Reuse state from last time
+        // Components can store state in the generator
         new_vdom.state = old_vdom.state;
-    }
 
-    // If no last instance, this is mounted for the first time and the old one is unmounted
-    if (old_vdom !== null
-        && old_elem !== null
-        && old_vdom._type !== "VdomNull"
-        && !(old_vdom._type === "VdomFunctional" && old_vdom.generator === new_vdom.generator)
-    ){
-        updateNullNode(old_elem, old_vdom);
-    }
-
-    // Don't redraw if passed props are the same
-    if(old_vdom !== null
-        && old_vdom._type === "VdomFunctional"
-        && old_vdom.generator === new_vdom.generator
-        && old_vdom.elem !== null
-        && new_vdom.props !== undefined
-    ) {
-        if (!shouldUpdate(old_vdom, new_vdom)) {
+        // Don't redraw if passed props are the same
+        if (old_vdom.elem !== null
+            && new_vdom.props !== undefined
+            && !shouldUpdate(old_vdom, new_vdom)
+        ) {
             new_vdom.instance = old_vdom.instance;
             if(new_vdom.instance !== null) new_vdom.instance.parent = new_vdom;
             new_vdom.elem = old_vdom.elem;
             return new_vdom.elem;
+
+        // Otherwise, redraw
+        } else {
+            generateInstance(old_elem, old_vdom, new_vdom);
         }
-    }
 
-    // Otherwise, redraw if passed instance is the same
-    const generated = new_vdom.generator(new_vdom);
-    generated.parent = new_vdom;
-    if (new_vdom.instance !== generated) {
-        new_vdom.elem = update(
-            old_vdom !== null && old_vdom._type === "VdomFunctional"
-                ? old_vdom.elem
-                : null,
-            old_vdom !== null && old_vdom._type === "VdomFunctional"
-                ? old_vdom.instance
-                : old_vdom,
-            generated,
-            new_vdom.bindpoint
-        );
-        new_vdom.instance = generated;
-    }
-
-    if ((old_vdom === null
-        || !(old_vdom._type === "VdomFunctional" && old_vdom.generator === new_vdom.generator)
-        ) && new_vdom.onMount !== undefined
-    ){ 
-        new_vdom.onMount(new_vdom);
+    // Destroy old and create new
+    } else {
+        old_elem !== null && updateNullNode(old_elem, old_vdom);
+        generateInstance(old_elem, old_vdom, new_vdom);
+        new_vdom.onMount !== undefined && new_vdom.onMount(new_vdom);
     }
 
     if (new_vdom.elem === null) {
@@ -169,7 +140,37 @@ const updateFunctionalVdom = (old_elem: Node | null, old_vdom: Vdom | null, new_
     return new_vdom.elem;
 }
 
-const shouldUpdate = <PropType>(old_vdom: ComponentAttributes<PropType>, new_vdom: ComponentAttributes<PropType>) => {
+const generateInstance = (
+    old_elem: Node | null,
+    old_vdom: Vdom | null,
+    new_vdom: VdomFunctional<any, any>
+) => {
+    const generated = new_vdom.generator(new_vdom);
+    generated.parent = new_vdom;
+    if (new_vdom.instance !== generated) {
+        if (old_vdom !== null && old_vdom._type === "VdomFunctional") {
+            new_vdom.elem = update(
+                old_vdom.elem, 
+                old_vdom.instance,
+                generated,
+                new_vdom.bindpoint
+            );
+        } else {
+            new_vdom.elem = update(
+                old_elem,
+                old_vdom,
+                generated,
+                new_vdom.bindpoint
+            );
+        }
+        new_vdom.instance = generated;
+    }
+}
+
+const shouldUpdate = <PropType>(
+    old_vdom: ComponentAttributes<PropType>,
+    new_vdom: ComponentAttributes<PropType>
+) => {
     if (new_vdom.shouldUpdate !== undefined) {
         return new_vdom.shouldUpdate(old_vdom.props, new_vdom.props, new_vdom.state);
     }
@@ -193,12 +194,43 @@ const shouldUpdate = <PropType>(old_vdom: ComponentAttributes<PropType>, new_vdo
     return false;
 }
 
+const updateNode = (
+    old_elem: Node | null,
+    old_vdom: Vdom | null,
+    new_vdom: VdomNode,
+    bindpoint: BindPoint
+) => {
+    if (
+        old_elem === null 
+        || old_vdom === null 
+        || old_vdom._type === "VdomNull" 
+        || old_vdom._type === "VdomText" 
+        || (old_vdom._type === "VdomNode" && old_vdom.tag !== new_vdom.tag)
+    ) {
+        if (old_elem !== null) {
+            updateNullNode(old_elem, old_vdom);
+        }
+        return createHTMLElement(new_vdom, bindpoint);
+
+    } else if (old_vdom._type === "VdomFunctional") {
+        return update(old_elem, old_vdom.instance, new_vdom, bindpoint);
+
+    } else {
+        return patchVdom(old_elem, old_vdom, new_vdom, bindpoint);
+    }
+}
+
 interface NodePair {
     vdom: Vdom;
     node: Node | null;
 }
 
-const patchVdom = (elem: Node, old_vdom: VdomNode, new_vdom: VdomNode, bindpoint: BindPoint) => {
+const patchVdom = (
+    elem: Node,
+    old_vdom: VdomNode,
+    new_vdom: VdomNode,
+    bindpoint: BindPoint
+) => {
 
     if (isElement(elem)) {
         patchClasses(elem, old_vdom.classes, new_vdom.classes);
@@ -298,7 +330,12 @@ const getChildElems = (elem: Node) => {
     return child_elems;
 }
 
-const patchChildElem = (elem: Node, new_node: Node | null, old_child: NodePair | null, next_elem: NodePair | null) => {
+const patchChildElem = (
+    elem: Node,
+    new_node: Node | null,
+    old_child: NodePair | null,
+    next_elem: NodePair | null
+) => {
     const old_node = old_child !== null
         ? old_child.node
         : null;
@@ -331,7 +368,11 @@ const patchChildElem = (elem: Node, new_node: Node | null, old_child: NodePair |
     }
 }
 
-const removeExtraUnkeyed = (elem: Node, unkeyed: NodePair[], unused_unkeyed_start: number) => {
+const removeExtraUnkeyed = (
+    elem: Node,
+    unkeyed: NodePair[],
+    unused_unkeyed_start: number
+) => {
     for (let unkeyed_index = unused_unkeyed_start; unkeyed_index < unkeyed.length; ++unkeyed_index) {
         const removed_elem = unkeyed[unkeyed_index];
         if (removed_elem !== null && removed_elem.node !== null) {
@@ -391,7 +432,11 @@ const patchClasses = (elem: Element, old_classes: ClassList, new_classes: ClassL
     })
 }
 
-const patchId = (elem: Element, old_id: string | undefined, new_id: string | undefined) => {
+const patchId = (
+    elem: Element,
+    old_id: string | undefined,
+    new_id: string | undefined
+) => {
     if (old_id !== undefined && new_id === undefined) {
         elem.removeAttribute("id")
     } else if (old_id !== new_id && new_id !== undefined) {
@@ -402,7 +447,12 @@ const patchId = (elem: Element, old_id: string | undefined, new_id: string | und
 // TODO: patchStyle()
 
 const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "id"]);
-const patchAttributes = (elem: Element, old_attr: Attributes, new_attr: Attributes, bindpoint: BindPoint) => {
+const patchAttributes = (
+    elem: Element,
+    old_attr: Attributes,
+    new_attr: Attributes,
+    bindpoint: BindPoint
+) => {
     Object.entries(new_attr).forEach(([key, value]: [string, any]) => {
         if (!EXCLUDED_ATTR.has(key)) {
             const old_value = old_attr[key];
@@ -450,7 +500,9 @@ const patchAttributes = (elem: Element, old_attr: Attributes, new_attr: Attribut
     })
 }
 
-const isVdomFunctional = (vdom: VdomFunctional<any, any>): vdom is VdomFunctional<any, any> => {
+const isVdomFunctional = (
+    vdom: VdomFunctional<any, any>
+): vdom is VdomFunctional<any, any> => {
     return "state" in vdom && "props" in vdom;
 }
 
