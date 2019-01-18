@@ -1,5 +1,4 @@
-import {UserVdom, v } from "../src/vdom";
-import {mount} from "../src/index";
+import {UserVdom, v, mount } from "src";
 import faker from "faker";
 
 interface CardProps {
@@ -58,17 +57,17 @@ mount(root_elem, root);
 
 
 // Dependency injection into a component factory
-const di_example = (api_service: {load: () => string[]) => {
-    const generator = (vdom: UserVdom<{}, {values: string[]}>) => {
-        if (vdom.state === undefined) {
-            vdom.state = {values: []};
-        }
+// const di_example = (api_service: {load: () => string[]}) => {
+//     const generator = (vdom: UserVdom<{}, {values: string[]}>) => {
+//         if (vdom.state === undefined) {
+//             vdom.state = {values: []};
+//         }
 
-        return v("button", {onclick: () => vdom.state.values = api_service.load()}, "Load");
-    }
+//         return v("button", {onclick: () => vdom.state.values = api_service.load()}, "Load");
+//     }
 
-    return () => v(generator, {})
-}
+//     return () => v(generator, {})
+// }
 
 // Create factory with `const example_factory = di_example()`
 // Components can create instances with `v("div", [example_factory()])`

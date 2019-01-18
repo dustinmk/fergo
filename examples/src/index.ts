@@ -1,4 +1,4 @@
-import {mount, v, Vdom} from "../src";
+import {mount, v, Vdom} from "src";
 
 import todo from "./todo";
 import closure from "./closure";

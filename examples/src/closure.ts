@@ -1,4 +1,4 @@
-import {redraw, v, UserVdom} from "../src";
+import {redraw, v, UserVdom} from "../../src";
 import faker from "faker";
 
 export default () => {

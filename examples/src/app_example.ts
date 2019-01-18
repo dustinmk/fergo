@@ -1,5 +1,4 @@
-import { mount } from "src/mount";
-import { v } from "src/vdom";
+import { mount, v } from "src";
 
 // Maintain state separate from the view. The state can then
 // store the view and update it as needed in response to events

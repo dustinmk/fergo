@@ -1,5 +1,4 @@
-import {v, redraw, mount, Vdom} from "..";
-import {UserVdom} from "../vdom";
+import {v, redraw, mount, Vdom, UserVdom} from "src";
 
 // Set Up
 class DataSource<Payload> {

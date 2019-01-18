@@ -1,4 +1,4 @@
-import {v, redraw, Vdom} from "../src";
+import {v, redraw, Vdom} from "src";
 
 // Todo Model
 interface Todo {

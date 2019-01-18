@@ -1,4 +1,4 @@
-import {v, redraw, mount} from "..";
+import {v, redraw, mount} from "src";
 import faker from "faker";
 
 interface Row {

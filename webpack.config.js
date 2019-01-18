@@ -30,7 +30,7 @@ module.exports = [
     },
     {
         mode: "development",
-        entry: "./examples/index.ts",
+        entry: "./examples/src/index.ts",
         devtool: "source-map",
         module: {
             rules: [
@@ -50,16 +50,16 @@ module.exports = [
             extensions: [".tsx", ".ts", ".jsx", ".js", ".html"],
             alias: {
                 src: path.resolve(__dirname, "src"),
-                example: path.resolve(__dirname, "example")
+                example: path.resolve(__dirname, "examples", "src")
             }
         },
         output: {
             filename: `index.js`,
-            path: path.resolve(__dirname, "example_dist")
+            path: path.resolve(__dirname, "examples", "dist")
         },
         plugins: [
             new CopyWebpackPlugin([
-                "examples/index.html"
+                "examples/src/index.html"
             ])
         ]
     }
