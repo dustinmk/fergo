@@ -22,15 +22,17 @@ export function redrawAsync(vdom: Vdom) {
     }
 
     if (raf_id === 0) {
-        raf_id = window.requestAnimationFrame(() => {
-            const read_queue = double_buffered_queue[1 - current_queue_id];
-            read_queue.forEach(queued_vdom => redrawSync(queued_vdom));
-            double_buffered_queue[1 - current_queue_id] = [];
-            current_queue_id = 1 - current_queue_id;
-            raf_id = 0;
-        });
+        raf_id = window.requestAnimationFrame(handleFrame);
     }
 };
+
+const handleFrame = () => {
+    const read_queue = double_buffered_queue[1 - current_queue_id];
+    read_queue.forEach(queued_vdom => redrawSync(queued_vdom));
+    double_buffered_queue[1 - current_queue_id] = [];
+    current_queue_id = 1 - current_queue_id;
+    raf_id = 0;
+}
 
 // Synchronous redraw
 export function redrawSync(vdom: Vdom) {
@@ -39,7 +41,7 @@ export function redrawSync(vdom: Vdom) {
         if (vdom.parent === null) {
             throw new Error("Root element must be a functional vdom");
         }
-        redraw(vdom.parent);
+        redrawSync(vdom.parent);
 
     } else {
         const old_elem = vdom.elem;
