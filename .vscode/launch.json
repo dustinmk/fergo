@@ -8,13 +8,13 @@
             "type": "node",
             "request": "launch",
             "name": "Mocha Test",
-            "program": "${workspaceFolder}/code/node_modules/mocha/bin/_mocha",
-            "cwd": "${workspaceFolder}/code",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "cwd": "${workspaceFolder}",
             "args": [
                 "-t", "12000",
                 "-r", "ts-node/register",
                 "-r", "tsconfig-paths/register",
-                "${workspaceFolder}/code/src/**/*_test.ts"
+                "${workspaceFolder}/src/**/*_test.ts"
             ]
         }
     ]
