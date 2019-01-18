@@ -4,7 +4,9 @@ interface VdomBase {
     parent: Vdom | null;
 }
 
-export interface VdomFunctional<PropType, StateType> extends VdomBase, ComponentAttributes<PropType, StateType> {
+export interface VdomFunctional<PropType, StateType>
+    extends VdomBase, ComponentAttributes<PropType, StateType>
+{
     _type: "VdomFunctional";
     generator: VdomGenerator<any, any>;
     instance: Vdom | null;
@@ -30,7 +32,8 @@ export interface ComponentAttributes<PropType = {}, StateType = {}> {
     onUnmount?: (vdom: ComponentAttributes<PropType, StateType>) => void;
 }
 
-export type VdomFunctionalAttributes<PropType, StateType> = Partial<ComponentAttributes<PropType, StateType>>
+export type VdomFunctionalAttributes<PropType, StateType>
+    = Partial<ComponentAttributes<PropType, StateType>>
 
 export interface BindPoint {
     binding: VdomFunctional<any, any>;
@@ -84,7 +87,10 @@ export function v(selector: string, children: Child[]): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child[]): Vdom;
 export function v(selector: string, children: Child): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child): Vdom;
-export function v<PropType, StateType>(selector: VdomGenerator<PropType, StateType>, props?: VdomFunctionalAttributes<PropType, StateType>): Vdom;
+export function v<PropType, StateType>(
+    selector: VdomGenerator<PropType, StateType>,
+    props?: VdomFunctionalAttributes<PropType, StateType>
+): Vdom;
 export function v<PropType, StateType>(
     selector: string | VdomGenerator<PropType, StateType>,
     arg1?: CustomAttr & Attributes | Child[] | Child | VdomFunctionalAttributes<PropType, StateType>,
@@ -142,7 +148,9 @@ export function v<PropType, StateType>(
     return v_impl(selector, attributes, children);
 }
 
-function isUserSupplied<PropType, StateType>(arg?: CustomAttr & Attributes | Child[] | Child | VdomFunctionalAttributes<PropType, StateType>): arg is VdomFunctionalAttributes<PropType, StateType> {
+function isUserSupplied<PropType, StateType>(
+    arg?: CustomAttr & Attributes | Child[] | Child | VdomFunctionalAttributes<PropType, StateType>
+): arg is VdomFunctionalAttributes<PropType, StateType> {
     return arg !== undefined
         && typeof arg === "object"
         && !Array.isArray(arg)

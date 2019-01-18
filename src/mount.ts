@@ -1,7 +1,7 @@
 import {v, Vdom, VdomGenerator} from "./vdom";
 import update from "./update";
 
-export function mount(elem: HTMLElement, vdom: Vdom | VdomGenerator<any, any>) {
+export const mount = (elem: HTMLElement, vdom: Vdom | VdomGenerator<any, any>)  => {
     if (typeof vdom === "function") {
         mount(elem, v(vdom));
     }

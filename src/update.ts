@@ -454,45 +454,50 @@ const patchAttributes = (
     bindpoint: BindPoint
 ) => {
     Object.entries(new_attr).forEach(([key, value]: [string, any]) => {
-        if (!EXCLUDED_ATTR.has(key)) {
+        if (!EXCLUDED_ATTR.has(key) && value !== old_attr[key]) {
             const old_value = old_attr[key];
 
             if (typeof value === "function") {
                 const event = eventName(key);
                 const ref_name = `_on${event}_ref`;
-                if (value !== old_value) {
-                    if (typeof old_value === "function") {
-                        elem.removeEventListener(event, old_attr[ref_name])
+
+                if (typeof old_value === "function") {
+                    elem.removeEventListener(event, old_attr[ref_name])
+                }
+
+                const handler = (evt: Event) => {
+                    // Vdom received in second argument will always be to nearest VdomFunctional
+                    if (!isVdomFunctional(bindpoint.binding)) {
+                        throw new Error("Invalid binding: not a functional vdom");
                     }
-                    const handler = (evt: Event) => {
-                        // Vdom received in second argument will always be to nearest VdomFunctional
-                        if (!isVdomFunctional(bindpoint.binding)) {
-                            throw new Error("Invalid binding: not a functional vdom");
-                        }
-                        value(evt, bindpoint.binding);
-                        redraw(bindpoint.binding);
-                    };
-                    new_attr[ref_name] = handler;
-                    elem.addEventListener(event, handler);
-                }
+                    value(evt, bindpoint.binding);
+                    redraw(bindpoint.binding);
+                };
+                new_attr[ref_name] = handler;
+                elem.addEventListener(event, handler);
+
             } else if(typeof value === "boolean") {
-                if (value !== old_value) {
-                    elem.toggleAttribute(key, value);
-                }
+                elem.toggleAttribute(key, value);
+
             } else {
-                if (value !== old_value) {
-                    elem.setAttribute(key, value);
-                }
+                elem.setAttribute(key, value);
             }
         }
     })
 
     Object.entries(old_attr).forEach(([key, value]: [string, any]) => {
         if (!EXCLUDED_ATTR.has(key) && !(key in new_attr)) {
-            if (typeof value === "function") {
-                elem.removeEventListener(eventName(key), value)
+
+            // Only remove event handlers at _on{event}_ref since the user-provided
+            // on{event} were not directly added as a listener
+            if (typeof value === "function" && key.substr(0, 2) === "on") {
+                const event_name = eventName(key);
+                const ref_name = `_on${event_name}_ref`;
+                elem.removeEventListener(event_name, old_attr[ref_name]);
+
             } else if (typeof value === "boolean") {
-                elem.toggleAttribute(key, false)
+                elem.toggleAttribute(key, false);
+
             } else {
                 elem.removeAttribute(key);
             }

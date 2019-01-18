@@ -1,21 +1,11 @@
 import {Vdom} from "./vdom";
 import update from "./update";
 
-let selected_redraw = redrawAsync;
-
-export const redraw = (vdom: Vdom) => {
-    selected_redraw(vdom);
-}
-
-export const selectRedraw = (redraw_function: (vdom: Vdom) => void) => {
-    selected_redraw = redraw_function;
-}
-
 // Limit redraws by queuing and requestAnimationFrame()
 let double_buffered_queue: Array<Vdom[]> = [[], []];
 let current_queue_id = 0;
 let raf_id = 0; // 0 is only guaranteed invalid ID returned by requestAnimationFrame
-export function redrawAsync(vdom: Vdom) {
+export const redrawAsync = (vdom: Vdom) => {
     const write_queue = double_buffered_queue[current_queue_id];
     if (write_queue.indexOf(vdom) < 0) {
         write_queue.push(vdom);
@@ -35,7 +25,7 @@ const handleFrame = () => {
 }
 
 // Synchronous redraw
-export function redrawSync(vdom: Vdom) {
+export const redrawSync = (vdom: Vdom) => {
     // Propagate redraw() up to closest functional vnode
     if (vdom._type !== "VdomFunctional") {
         if (vdom.parent === null) {
@@ -59,8 +49,22 @@ export function redrawSync(vdom: Vdom) {
 
         // The parent hasn't redrawn so it is the same as before. Components must
         // return an element, so the parent element will always be there.
-        if (old_elem !== elem && old_elem !== null && old_elem.parentNode !== null && elem !== null) {
+        if (old_elem !== elem
+            && old_elem !== null
+            && old_elem.parentNode !== null
+            && elem !== null
+        ) {
             old_elem.parentNode.replaceChild(elem, old_elem);
         }
     }
+}
+
+let selected_redraw = redrawAsync;
+
+export const redraw = (vdom: Vdom) => {
+    selected_redraw(vdom);
+}
+
+export const selectRedraw = (redraw_function: (vdom: Vdom) => void) => {
+    selected_redraw = redraw_function;
 }
