@@ -58,19 +58,21 @@ const updateNullNode = (old_elem: Node, old_vdom: Vdom | null) => {
     }
 
     if (old_vdom._type === "VdomNode") {
-        if (old_vdom.attributes.onremove !== undefined) {
-            old_vdom.attributes.onremove(old_vdom, old_elem);
-        }
 
+        // Leaf-first order so the leaves still have the parents when called
         const child_nodes: Node[] = [];
         old_elem.childNodes.forEach(child => child_nodes.push(child));
         let child_node_index = 0;
-        
+
         for (const child of old_vdom.children) {
             if (child._type !== "VdomNull") {
                 updateNullNode(child_nodes[child_node_index], child);
                 ++child_node_index;
             }
+        }
+
+        if (old_vdom.attributes.onremove !== undefined) {
+            old_vdom.attributes.onremove(old_vdom, old_elem);
         }
 
     } else if (old_vdom._type === "VdomFunctional") {
@@ -110,16 +112,15 @@ const updateFunctionalVdom = (old_elem: Node | null, old_vdom: Vdom | null, new_
         && old_vdom.state !== undefined
     ) {
         new_vdom.state = old_vdom.state;
-    } else {
+    }
 
-        // If no last instance, this is mounted for the first time
-        if (old_elem !== null) {
-            updateNullNode(old_elem, old_vdom);
-        }
-
-        if (new_vdom.onMount !== undefined) {
-            new_vdom.onMount(new_vdom);
-        }
+    // If no last instance, this is mounted for the first time and the old one is unmounted
+    if (old_vdom !== null
+        && old_elem !== null
+        && old_vdom._type !== "VdomNull"
+        && !(old_vdom._type === "VdomFunctional" && old_vdom.generator === new_vdom.generator)
+    ){
+        updateNullNode(old_elem, old_vdom);
     }
 
     // Don't redraw if passed props are the same
@@ -152,6 +153,13 @@ const updateFunctionalVdom = (old_elem: Node | null, old_vdom: Vdom | null, new_
             new_vdom.bindpoint
         );
         new_vdom.instance = generated;
+    }
+
+    if ((old_vdom === null
+        || !(old_vdom._type === "VdomFunctional" && old_vdom.generator === new_vdom.generator)
+        ) && new_vdom.onMount !== undefined
+    ){ 
+        new_vdom.onMount(new_vdom);
     }
 
     if (new_vdom.elem === null) {
@@ -298,14 +306,11 @@ const patchChildElem = (elem: Node, new_node: Node | null, old_child: NodePair |
         ? next_elem.node
         : null;
 
+    // next_node may be keyed and unused, so it might not have to be
+    // removed later since it's being removed here, so flag it with null
+    // as required
     if (new_node === null) {
-        // if (next_elem !== null && next_elem.node !== null)
-        //     callRemoveHooks(next_elem.vdom, next_elem.node);
-
         next_node !== null && elem.removeChild(next_node);
-        
-        // next_node may be keyed and unused, so it might not have to be
-        // removed later since it's being removed here
         if (next_elem !== null && next_elem.node !== null)
             next_elem.node = null;
 
@@ -313,17 +318,13 @@ const patchChildElem = (elem: Node, new_node: Node | null, old_child: NodePair |
         elem.insertBefore(new_node, next_node);
 
     } else if (new_node !== next_node) {
-        // if (next_elem !== null && next_elem.node !== null)
-        //     callRemoveHooks(next_elem.vdom, next_elem.node);
-
         elem.replaceChild(new_node, next_node);
-
         if (next_elem !== null && next_elem.node !== null)
             next_elem.node = null;
     }
 
     // Mark keyed element as used from elsewhere in the child list
-    // If old node is reused and replaced at a new polace in the list,
+    // If old node is reused and replaced at a new place in the list,
     // the DOM first removes it. This is to update the list to reflect that fact.
     if (old_child !== null) {
         old_child.node = null;

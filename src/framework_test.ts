@@ -525,6 +525,10 @@ describe("Framework Test", () => {
         it("calls unMount on child", () => {
             
         })
+
+        it("doesn't call onMount when replaced with same", () => {
+            
+        })
     });
 
     describe("oninit and onremove hooks", () => {
