@@ -1,12 +1,19 @@
 import chai, {expect} from "chai";
 import * as sinon from "sinon";
 import jsdom from "mocha-jsdom";
-import {v, mount, redraw} from "src/index";
+import {v, mount, redraw, redrawSync, selectRedraw, Vdom} from "src/index";
 import chaiDOM from "chai-dom";
 import beautify from "js-beautify";
 import { UserVdom } from "./vdom";
 
 chai.use(chaiDOM);
+selectRedraw(redrawSync);
+
+// TODO: Test remove hooks
+// TODO: Test onclick event handlers - replace, keep
+// TODO: Test patch attributes
+
+const PRINT_HTML = false;
 
 describe("Framework Test", () => {
     jsdom({url: "http://localhost"});
@@ -14,16 +21,9 @@ describe("Framework Test", () => {
     it("Creates and updates p elem", () => {
         let text = "text 1";
         const root = v(() => v("p", text));
-        mount(getRootElement(), root);
-        printDocument();
-        expect(document.querySelector("p"))
-            .to.have.text("text 1");
-
+        mountAndMatch(root, "p", ["text 1"]);
         text = "text 2";
-        redraw(root);
-        printDocument();
-        expect(document.querySelector("p"))
-            .to.have.text("text 2");
+        redrawAndMatch(root, "p", ["text 2"])
     });
 
     it("Creates and updates nested elems", () => {
@@ -51,37 +51,31 @@ describe("Framework Test", () => {
             ])
         ]));
     
-        mount(getRootElement(), root);
-        printDocument();
-        expect(document.querySelectorAll("p"))
-            .to.have.text([
-                "text 1",
-                "text 2",
-                "text 3",
-                "first 1",
-                "text 4",
-                "text 5",
-                "text 6",
-                "text 7",
-                "first 2"
-            ]);
+        mountAndMatch(root, "p", [
+            "text 1",
+            "text 2",
+            "text 3",
+            "first 1",
+            "text 4",
+            "text 5",
+            "text 6",
+            "text 7",
+            "first 2"
+        ]);
 
         start = 10;
         toggle = false;
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("p"))
-            .to.have.text([
-                "second 1",
-                "text 11",
-                "text 12",
-                "text 13",
-                "text 14",
-                "text 15",
-                "text 16",
-                "text 17",
-                "second 2"
-            ]);
+        redrawAndMatch(root, "p", [
+            "second 1",
+            "text 11",
+            "text 12",
+            "text 13",
+            "text 14",
+            "text 15",
+            "text 16",
+            "text 17",
+            "second 2"
+        ]);
     });
 
     it("Removes an element", () => {
@@ -91,16 +85,9 @@ describe("Framework Test", () => {
             v("p", "text 2")
         ]));
 
-        mount(getRootElement(), root);
-        printDocument();
-        expect(document.querySelectorAll("p"))
-            .to.have.text(["text 1", "text 2"]);
-
+        mountAndMatch(root, "p", ["text 1", "text 2"]);
         toggle = false;
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("p"))
-            .to.have.text(["text 2"]);
+        redrawAndMatch(root, "p", ["text 2"]);
     })
 
     it("Clears children", () => {
@@ -111,16 +98,9 @@ describe("Framework Test", () => {
             toggle && v("p", "text 3"),
         ]));
 
-        mount(getRootElement(), root);
-        printDocument();
-        expect(document.querySelectorAll("p"))
-            .to.have.text(["text 1", "text 2", "text 3"]);
-
+        mountAndMatch(root, "p", ["text 1", "text 2", "text 3"]);
         toggle = false;
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("p"))
-            .to.have.text([]);
+        redrawAndMatch(root, "p", []);
     });
 
     it("Adds to an empty div", () => {
@@ -131,16 +111,9 @@ describe("Framework Test", () => {
             toggle && v("p", "text 3"),
         ]));
 
-        mount(getRootElement(), root);
-        printDocument();
-        expect(document.querySelectorAll("p"))
-            .to.have.text([]);
-
+        mountAndMatch(root, "p", [])
         toggle = true;
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("p"))
-            .to.have.text(["text 1", "text 2", "text 3"]);
+        redrawAndMatch(root, "p", ["text 1", "text 2", "text 3"]);
     })
 
     it("Handles mixed toggles", () => {
@@ -152,16 +125,9 @@ describe("Framework Test", () => {
             v("p", "2")
         ]));
 
-        mount(getRootElement(), root);
-        printDocument();
-        expect(document.querySelectorAll("p"))
-            .to.have.text(["1", "first 1", "2"]);
-
+        mountAndMatch(root, "p", ["1", "first 1", "2"]);
         toggle = false;
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("p"))
-            .to.have.text(["second 1", "1", "2"]);
+        redrawAndMatch(root, "p", ["second 1", "1", "2"]);
     })
 
     it("Adds in the correct order", () => {
@@ -177,16 +143,9 @@ describe("Framework Test", () => {
             toggle && v("p", "text 5")
         ]));
 
-        mount(getRootElement(), root);
-        printDocument();
-        expect(document.querySelectorAll("p"))
-            .to.have.text(["text 1", "text 3"]);
-
+        mountAndMatch(root, "p", ["text 1", "text 3"]);
         toggle = true;
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("p"))
-            .to.have.text(["text -1", "text 0", "text 1", "text 2", "text 2a", "text 3", "text 4", "text 5"]);
+        redrawAndMatch(root, "p", ["text -1", "text 0", "text 1", "text 2", "text 2a", "text 3", "text 4", "text 5"]);
     })
 
     it("Handles variable child lists", () => {
@@ -197,29 +156,19 @@ describe("Framework Test", () => {
 
         let children = [c1, c2];
         const root = v(() => v("ul", children));
-        mount(getRootElement(), root);
-        printDocument();
-        expect(document.querySelectorAll("li")).to.have.text(["1", "2"]);
+        mountAndMatch(root, "li", ["1", "2"]);
 
         children = [c1, c3, c2];
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("li")).to.have.text(["1", "3", "2"]);
+        redrawAndMatch(root, "li", ["1", "3", "2"]);
 
         children = [c2, c1, c3];
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("li")).to.have.text(["2", "1", "3"]);
+        redrawAndMatch(root, "li", ["2", "1", "3"]);
 
         children = [c2];
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("li")).to.have.text(["2"]);
+        redrawAndMatch(root, "li", ["2"]);
 
         children = [];
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("li")).to.have.text([]);
+        redrawAndMatch(root, "li", []);
     })
 
     it("Reorders reused vdoms", () => {
@@ -230,15 +179,10 @@ describe("Framework Test", () => {
 
         let children = [c1, c3, c2];
         const root = v(() => v("ul", children));
-        mount(getRootElement(), root);
-        printDocument();
-        expect(document.querySelectorAll("li")).to.have.text(["1", "3", "2"]);
+        mountAndMatch(root, "li", ["1", "3", "2"]);
 
-        //children = [c2, c1, c3];
-        children = [{...c2}, {...c1}, {...c3}]
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("li")).to.have.text(["2", "1", "3"]);
+        children = [c2, c1, c3]
+        redrawAndMatch(root, "li", ["2", "1", "3"]);
     })
 
     it("Clears a variable list", () => {
@@ -248,52 +192,32 @@ describe("Framework Test", () => {
         ];
 
         const root = v(() => v("ul", children));
-        mount(getRootElement(), root);
-        printDocument();
-        expect(document.querySelectorAll("li")).to.have.text(["1", "2"]);
+        mountAndMatch(root, "li", ["1", "2"]);
 
         children.splice(0, 2);
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("li")).to.have.text([]);
+        redrawAndMatch(root, "li", []);
     })
 
-    it("redraws multiple times", () => {
+    it("Redraws multiple times", () => {
         let t = "spllen";
 
         const root = v(() =>
-            v("div#root", [
+            v("div#top", [
                 v("h1", "header"),
                 v("p", t),
                 v("p", "more text")
             ]));
         
-        mount(getRootElement(), root);
-        printDocument();
-
-        expect(document.querySelector("div#root"))
-            .to.have.length(1);
-        expect(document.querySelector("div#root>div"))
-            .to.have.length(3);
-        expect(document.querySelectorAll("div#root>div>*"))
-            .to.have.text(["header", "spllen", "more text"]);
+        mountAndMatch(root, "div#top>*", ["header", "spllen", "more text"]);
 
         t = "text";
-        redraw(root);
-        printDocument();
-
-        expect(document.querySelectorAll("div#root>div>*"))
-            .to.have.text(["header", "text", "more text"]);
+        redrawAndMatch(root, "div#top>*", ["header", "text", "more text"]);
 
         t = "arbugle";
-        redraw(root);
-        printDocument();
-
-        expect(document.querySelectorAll("div#root>div>*"))
-            .to.have.text(["header", "arbugle", "more text"]);
+        redrawAndMatch(root, "div#top>*", ["header", "arbugle", "more text"]);
     });
 
-    it("Redraws a child component", () => {
+    it("Redraws a child component but not the parent", () => {
         let text = "first";
 
         const child = v(() =>
@@ -309,17 +233,13 @@ describe("Framework Test", () => {
             child
         ]));
 
-        mount(getRootElement(), parent);
-        printDocument();
-        expect(document.querySelectorAll("p")).to.have.text(["parent", "first", "child", "first"]);
+        mountAndMatch(parent, "p", ["parent", "first", "child", "first"]);
 
         text = "second";
-        redraw(child);
-        printDocument();
-        expect(document.querySelectorAll("p")).to.have.text(["parent", "first", "child", "second"]);
+        redrawAndMatch(child, "p", ["parent", "first", "child", "second"]);
     });
 
-    it("Redraws a parent component", () => {
+    it("Redraws a parent component but not the child", () => {
         let text = "first";
 
         const child_component = v("div", [
@@ -328,9 +248,7 @@ describe("Framework Test", () => {
         ]);
 
         const generator = () => child_component;
-
         const generator_spy = sinon.spy(generator);
-
         const child = v(generator_spy);
 
         const parent = v(() => v("div", [
@@ -339,18 +257,14 @@ describe("Framework Test", () => {
             child
         ]));
 
-        mount(getRootElement(), parent);
-        printDocument();
-        expect(document.querySelectorAll("p")).to.have.text(["parent", "first", "child", "first"]);
+        mountAndMatch(parent, "p", ["parent", "first", "child", "first"]);
 
         text = "second";
-        redraw(parent);
-        printDocument();
-        expect(document.querySelectorAll("p")).to.have.text(["parent", "second", "child", "first"]);
-        expect(generator_spy.called).to.be.true;
+        redrawAndMatch(parent, "p", ["parent", "second", "child", "first"]);
+        expect(generator_spy.calledOnce).to.be.true;
     })
 
-    it("Rebuilds a child component", () => {
+    it("Rebuilds a child component when parent updated", () => {
         let text = "first";
 
         const child = () => v(() =>
@@ -362,18 +276,14 @@ describe("Framework Test", () => {
 
         const parent = v(() => v("div", [
             v("p", "parent"),
-            v("p", text),       // Should not redraw
+            v("p", text),
             child()
         ]));
 
-        mount(getRootElement(), parent);
-        printDocument();
-        expect(document.querySelectorAll("p")).to.have.text(["parent", "first", "child", "first"]);
+        mountAndMatch(parent, "p", ["parent", "first", "child", "first"]);
 
         text = "second";
-        redraw(parent);
-        printDocument();
-        expect(document.querySelectorAll("p")).to.have.text(["parent", "second", "child", "second"]);
+        redrawAndMatch(parent, "p", ["parent", "second", "child", "second"]);
     })
 
     it("Redraws a middle component twice", () => {
@@ -400,65 +310,48 @@ describe("Framework Test", () => {
             middle
         ]));
 
-        mount(getRootElement(), parent);
-        printDocument();
-        expect(document.querySelectorAll("p")).to.have.text(["parent", "first", "middle", "first", "child", "first"]);
+        mountAndMatch(parent, "p", ["parent", "first", "middle", "first", "child", "first"]);
 
         text = "second";
-        redraw(middle);
-        printDocument();
-        expect(document.querySelectorAll("p")).to.have.text(["parent", "first", "middle", "second", "child", "first"]);
+        redrawAndMatch(middle, "p", ["parent", "first", "middle", "second", "child", "first"]);
 
         text = "third";
-        redraw(middle);
-        printDocument();
-        expect(document.querySelectorAll("p")).to.have.text(["parent", "first", "middle", "third", "child", "first"]);
+        redrawAndMatch(middle, "p", ["parent", "first", "middle", "third", "child", "first"]);
     })
 
     it("Redraws from a non-functional component after a redraw", () => {
         let text = "first";
         const redraw_component = v("p", "start here");
 
-        mount(getRootElement(), () => v("div", [
+        mountAndMatch(() => v("div", [
             v("p", "parent"),
             v("p", text),
             v("div", [
                 redraw_component
             ])
-        ]))
-
-        printDocument();
-        expect(document.querySelectorAll("p")).to.have.text(["parent", "first", "start here"]);
+        ]), "p", ["parent", "first", "start here"]);
 
         text = "second";
-        redraw(redraw_component);
-        printDocument();
-        expect(document.querySelectorAll("p")).to.have.text(["parent", "second", "start here"]);
+        redrawAndMatch(redraw_component, "p", ["parent", "second", "start here"]);
     })
 
     it("Redraws from passed in vdom", () => {
         let text = "first";
         let root: UserVdom | null = null;
 
-        mount(getRootElement(), (vdom) => {
+        mountAndMatch((vdom) => {
             root = vdom;
             return v("div", [
                 v("p", "root"),
                 v("p", text)
             ])
-        });
-
-        expect(document.querySelectorAll("p")).to.have.text(["root", "first"]);
-        printDocument();
+        }, "p", ["root", "first"]);
 
         expect(root).to.not.be.null;
-
-        if (root === null) { throw new Error("vdom is null"); }
+        if (root === null) { throw new Error("Thisi s just to make Typescript happy"); }
 
         text = "second";
-        redraw(root);
-        printDocument();
-        expect(document.querySelectorAll("p")).to.have.text(["root", "second"]);
+        redrawAndMatch(root, "p", ["root", "second"]);
     })
 
     it("Rearranges keyed elements", () => {
@@ -466,12 +359,10 @@ describe("Framework Test", () => {
         let children = [c1, c2, c3, c4, c5, c6];
         const root = v(() => v("ul", children));
 
-        mount(getRootElement(), root);
-        expect(document.querySelectorAll("li")).to.have.text(["1", "2", "3", "4", "5", "6"])
+        mountAndMatch(root, "li", ["1", "2", "3", "4", "5", "6"])
 
         children = [c2, c4, c1, c5, c3, c6];
-        redraw(root);
-        expect(document.querySelectorAll("li")).to.have.text(["2", "4", "1", "5", "3", "6"])
+        redrawAndMatch(root, "li", ["2", "4", "1", "5", "3", "6"])
     })
 
     it("Mixes keyed elements with non-keyed", () => {
@@ -526,13 +417,11 @@ describe("Framework Test", () => {
             v("p", change_outer)
         ]))
 
-        mount(getRootElement(), root);
-        expect(document.querySelectorAll("p")).to.have.text(["text", "change inner first", "change outer first"])
+        mountAndMatch(root, "p", ["text", "change inner first", "change outer first"])
 
         change_child = "change inner second";
         change_outer = "change outer second";
-        redraw(root);
-        expect(document.querySelectorAll("p")).to.have.text(["text", "change inner first", "change outer second"]) 
+        redrawAndMatch(root, "p", ["text", "change inner first", "change outer second"]) 
     })
 
     it("Redraws child when props change", () => {
@@ -553,12 +442,10 @@ describe("Framework Test", () => {
             v("p", "root")
         ]))
 
-        mount(getRootElement(), root);
-        expect(document.querySelectorAll("p")).to.have.text(["first", "root"])
+        mountAndMatch(root, "p", ["first", "root"])
 
         props = {text: "second"};
-        redraw(root);
-        expect(document.querySelectorAll("p")).to.have.text(["second", "root"]) 
+        redrawAndMatch(root, "p", ["second", "root"]) 
     })
 
     it("Redraws child when generator changes", () => {
@@ -583,12 +470,10 @@ describe("Framework Test", () => {
             v("p", "root")
         ]))
 
-        mount(getRootElement(), root);
-        expect(document.querySelectorAll("p")).to.have.text(["child1", "text", "root"])
+        mountAndMatch(root, "p", ["child1", "text", "root"])
 
         toggle = true;
-        redraw(root);
-        expect(document.querySelectorAll("p")).to.have.text(["child2", "text", "root"]) 
+        redrawAndMatch(root, "p", ["child2", "text", "root"]) 
     })
 
     it("Uses state", () => {
@@ -603,20 +488,161 @@ describe("Framework Test", () => {
 
         const child = v(generator, {state: {count: 0}});
 
-        mount(getRootElement(), () => v("div", [
+        mountAndMatch(() => v("div", [
             v("h1", "root"),
             child
-        ]))
-        printDocument()
-        redraw(child)
-        printDocument()
-        redraw(child)
-        printDocument()
-        redraw(child)
-        printDocument()
-        expect(document.querySelectorAll("p")).to.have.text(["4"])
+        ]), "p", ["1"])
+        redrawAndMatch(child, "p", ["2"])
+        redrawAndMatch(child, "p", ["3"])
+        redrawAndMatch(child, "p", ["4"])
+    })
+
+
+    describe("Mount and Unmount", () => {
+        it("replaces with p", () => {
+            testMountCallbacks("first", (toggle, component) => v("div", [
+                !toggle ? component : v("p", "not component")
+            ]));
+        });
+
+        it("replaces with functional", () => {
+            testMountCallbacks("first", (toggle, component) => v("div", [
+                !toggle ? component : () => v("hr")
+            ]));
+        });
+
+        it("removes", () => {
+            testMountCallbacks("first", (toggle, component) => v("div", [
+                !toggle && component,
+            ]));
+        });
+
+        it("adds", () => {
+            testMountCallbacks("second", (toggle, component) => v("div", [
+                toggle ? v(() => v("br")) : component
+            ]))
+        })
+    });
+
+    describe("oninit and onremove hooks", () => {
+        it("replaces with same tag", () => {
+            testElementCallbacks("first", (toggle: boolean, vdom: Vdom) => {
+                return v("div", [
+                    !toggle ? vdom : v("p", "other")
+                ])
+            })
+        })
+
+        it("replaces with different tag", () => {
+            testElementCallbacks("first", (toggle: boolean, vdom: Vdom) => {
+                return v("div", [
+                    !toggle ? vdom : v("h1", "other")
+                ])
+            })
+        })
+
+        it("adds new element", () => {
+            testElementCallbacks("second", (toggle: boolean, vdom: Vdom) => {
+                return v("div", [
+                    toggle && vdom
+                ])
+            })
+        })
+
+        it("removes an element", () => {
+            testElementCallbacks("first", (toggle: boolean, vdom: Vdom) => {
+                return v("div", [
+                    !toggle && vdom
+                ])
+            })
+        })
     })
 });
+
+function testMountCallbacks(when_mounted: string, root_generator: (toggle: boolean, component: Vdom) => Vdom) {
+    interface State {
+        name: string;
+    }
+
+    const state = {name: "0"};
+    const generator = () => v("p", "component");
+    const onMount = sinon.spy((_: State) => {})
+    const onUnmount = sinon.spy((_: State) => {})
+    const component = v(generator, {
+        onMount: onMount,
+        onUnmount: onUnmount,
+        state: state
+    })
+
+    let toggle = false;
+    const root = v(() => root_generator(toggle, component));
+
+    if (when_mounted === "first") {
+        mount(getRootElement(), root);
+        expect(onMount.calledWith(state), "onMount called").to.be.true;
+        expect(onUnmount.notCalled, "onUnmount not called").to.be.true;
+
+        toggle = true;
+        redraw(root);
+        expect(onUnmount.calledWith(state), "onUnmount called").to.be.true;
+        expect(onMount.calledOnce, "onMount not called").to.be.true;
+
+    } else {
+        mount(getRootElement(), root);
+        expect(onMount.notCalled, "onMount not called").to.be.true;
+        expect(onUnmount.notCalled, "onUnmount not called").to.be.true;
+
+        toggle = true;
+        redraw(root);
+        expect(onUnmount.notCalled, "onUnmount not called").to.be.true;
+        expect(onMount.calledWith(state), "onMount not called").to.be.true;
+    }
+}
+
+function testElementCallbacks(when_mounted: string, root_generator: (toggle: boolean, component: Vdom) => Vdom) {
+    const oninit = sinon.spy();
+    const onremove = sinon.spy();
+    const component = v("p", {oninit, onremove}, "text");
+
+    let toggle = false;
+    const root = v(() => root_generator(toggle, component));
+
+    if (when_mounted === "first") {
+        mount(getRootElement(), root);
+        expect(oninit.calledOnce).to.be.true;
+        expect(onremove.called).to.be.false;
+
+        toggle = true;
+        redraw(root);
+        expect(oninit.calledOnce).to.be.true;
+        expect(onremove.calledOnce).to.be.true;
+    
+    } else {
+        mount(getRootElement(), root);
+        expect(oninit.notCalled).to.be.true;
+        expect(onremove.notCalled).to.be.true;
+
+        toggle = true;
+        redraw(root);
+        expect(oninit.calledOnce).to.be.true;
+        expect(onremove.notCalled).to.be.true;
+    }
+
+}
+
+function mountAndMatch(vdom: Vdom | ((vdom: UserVdom<any, any>) => Vdom), tag: string, result: string[]) {
+    mount(getRootElement(), vdom);
+    PRINT_HTML && printDocument();
+    expect(document.querySelectorAll(tag))
+        .to.have.text(result);
+}
+
+function redrawAndMatch(vdom: Vdom, tag: string, result: string[]) {
+    redraw(vdom);
+    PRINT_HTML && printDocument();
+    expect(document.querySelectorAll(tag))
+        .to.have.text(result);
+}
 
 function getRootElement() {
     document.body.innerHTML = `<div id="root"></div>`;

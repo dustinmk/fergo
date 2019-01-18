@@ -1,31 +1,7 @@
 const path = require("path");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 // TODO: Closure Compiler
-
-const example_base = (name) => ({
-    mode: "development",
-    entry: `./src/example/${name}.ts`,
-    devtool: "source-map",
-    module: {
-        rules: [
-            {
-                test: /\.tsx?$/,
-                use: "ts-loader",
-                exclude: /node_modules/
-            }
-        ]
-    },
-    resolve: {
-        extensions: [".tsx", ".ts", ".jsx", ".js"],
-        alias: {
-            src: path.resolve(__dirname, "src")
-        }
-    },
-    output: {
-        filename: `${name}.js`,
-        path: path.resolve(__dirname, "src", "example")
-    }
-});
 
 module.exports = [
     {
@@ -52,9 +28,39 @@ module.exports = [
             path: path.resolve(__dirname, "dist")
         }
     },
-    example_base("pubsub"),
-    example_base("todo"),
-    example_base("benchmark"),
-    example_base("closure"),
-    example_base("state")
+    {
+        mode: "development",
+        entry: "./examples/index.ts",
+        devtool: "source-map",
+        module: {
+            rules: [
+                {
+                    test: /\.tsx?$/,
+                    use: "ts-loader",
+                    exclude: /node_modules/
+                },
+                {
+                    test: /\.html$/,
+                    use: "file-loader",
+                    exclude: /node_modules/,
+                }
+            ]
+        },
+        resolve: {
+            extensions: [".tsx", ".ts", ".jsx", ".js", ".html"],
+            alias: {
+                src: path.resolve(__dirname, "src"),
+                example: path.resolve(__dirname, "example")
+            }
+        },
+        output: {
+            filename: `index.js`,
+            path: path.resolve(__dirname, "example_dist")
+        },
+        plugins: [
+            new CopyWebpackPlugin([
+                "examples/index.html"
+            ])
+        ]
+    }
 ]

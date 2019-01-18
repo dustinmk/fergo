@@ -85,8 +85,6 @@ interface MyProps {
     text_source: DataSource<string>;
 }
 
-// TODO: State should be set as 'this' on generator so d = new Doc(); v(d.view, {state: this}); will work
-
 class _Doc extends Component<MyProps> {
     private text: string = "default text";
 
@@ -118,11 +116,8 @@ setInterval(() => {
 // TODO: Sample where parent tells child to update explicity through messages,
 // not relying on props
 // TODO: Sample with reactive pattern
-// TODO: React-like components in Vdom (that can receive new props without rebuilding)
 // TODO: Closure pattern example - store instances as high as possible in closure,
 //      then just include them in the returned closure
-// TODO: Example with memoized components - store memoized at top, then call it with
-//      props inside
 
 class Root extends Component<{}> {
     private prop_value = 0;

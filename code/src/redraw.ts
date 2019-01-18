@@ -1,19 +1,29 @@
 import {Vdom} from "./vdom";
 import update from "./update";
 
+let selected_redraw = redrawAsync;
+
+export const redraw = (vdom: Vdom) => {
+    selected_redraw(vdom);
+}
+
+export const selectRedraw = (redraw_function: (vdom: Vdom) => void) => {
+    selected_redraw = redraw_function;
+}
+
 // Limit redraws by queuing and requestAnimationFrame()
 let double_buffered_queue: Array<Vdom[]> = [[], []];
 let current_queue_id = 0;
 let raf_id = 0; // 0 is only guaranteed invalid ID returned by requestAnimationFrame
 export function redrawAsync(vdom: Vdom) {
     const write_queue = double_buffered_queue[current_queue_id];
-    const read_queue = double_buffered_queue[1 - current_queue_id];
     if (write_queue.indexOf(vdom) < 0) {
         write_queue.push(vdom);
     }
 
     if (raf_id === 0) {
         raf_id = window.requestAnimationFrame(() => {
+            const read_queue = double_buffered_queue[1 - current_queue_id];
             read_queue.forEach(queued_vdom => redrawSync(queued_vdom));
             double_buffered_queue[1 - current_queue_id] = [];
             current_queue_id = 1 - current_queue_id;
@@ -29,7 +39,7 @@ export function redrawSync(vdom: Vdom) {
         if (vdom.parent === null) {
             throw new Error("Root element must be a functional vdom");
         }
-        redrawSync(vdom.parent);
+        redraw(vdom.parent);
 
     } else {
         const old_elem = vdom.elem;

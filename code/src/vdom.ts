@@ -1,5 +1,4 @@
 // TODO: JSX compatible variant
-// TODO: oninit(), onremove() hooks
 
 export interface VdomBase {
     parent: Vdom | null;
@@ -24,6 +23,8 @@ export interface UserVdom<PropType extends {[index: string]: any}= {}, StateType
     state: StateType;
     key?: string;
     shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
+    onMount?: (state: StateType) => void;
+    onUnmount?: (state: StateType) => void;
 }
 
 export interface UserSupplied<PropType, StateType> {
@@ -31,6 +32,8 @@ export interface UserSupplied<PropType, StateType> {
     state?: StateType;
     key?: string;
     shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
+    onMount?: (state: StateType) => void;
+    onUnmount?: (state: StateType) => void;
 }
 
 export interface VdomFunctionalBase extends VdomBase {
@@ -71,6 +74,8 @@ export interface Attributes {
     _type?: "Attributes";
     key?: string;
     [index: string]: any;
+    oninit?: (vdom: Vdom, elem: Node) => void;
+    onremove?: (vdom: Vdom, elem: Node) => void;
 }
 
 interface CustomAttr {
@@ -133,7 +138,7 @@ export function v<PropType, StateType>(
         children = [arg1];
     } else if (arg1 !== null && typeof arg1 === "object") {
         attributes = arg1;
-    } else {
+    } else if (arg1 !== undefined) {
         throw new Error(`Incorrect arguments passed to v(${selector}`);
     }
 

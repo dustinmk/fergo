@@ -1,10 +1,24 @@
 import {Vdom, VdomNode, VdomText, VdomFunctional, VdomFunctionalBase, UserVdom, BindPoint, Attributes, ClassList} from "./vdom";
-import {redrawSync} from "./redraw";
+import {redraw} from "./redraw";
 
 // Compare old and new Vdom, then put updated elem on new_vdom
 // TODO: Support child arrays
 // TODO: onremove()
 const update = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom, bindpoint: BindPoint): Node | null => {
+    if (old_vdom !== null
+        && old_elem !== null
+        && (
+            old_vdom._type !== new_vdom._type
+            || (
+                old_vdom._type === "VdomNode"
+                && new_vdom._type === "VdomNode" 
+                && new_vdom.tag === old_vdom.tag
+            )
+        )
+    ) {
+        callRemoveHooks(old_vdom, old_elem);
+    }
+
     if (new_vdom._type === "VdomFunctional") {
         return updateFunctionalVdom(old_vdom, new_vdom);
     }
@@ -46,6 +60,9 @@ const updateTextNode = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: 
     }
 }
 
+// TODO: onMount(), onUnmount()
+// mount when old_vdom === null
+// unmount when 
 const updateFunctionalVdom = (old_vdom: Vdom | null, new_vdom: VdomFunctional<any, any>): Node => {
 
     // Share bindpoint as long as possible across all instances of this vdom
@@ -61,6 +78,12 @@ const updateFunctionalVdom = (old_vdom: Vdom | null, new_vdom: VdomFunctional<an
         && old_vdom.state !== undefined
     ) {
         new_vdom.state = old_vdom.state;
+    } else {
+
+        // If no last instance, this is mounted for the first time
+        if (new_vdom.onMount !== undefined) {
+            new_vdom.onMount(new_vdom.state);
+        }
     }
 
     // Don't redraw if passed props are the same
@@ -131,7 +154,12 @@ interface NodePair {
     node: Node | null;
 }
 
-// TODO: Array.shift() is much slower than Array.pop()
+// TODO: onremove()
+// remove when old child elem is not reused
+//      keyed: all unused keyed elems
+//      unkeyed: all elems set to null & all elems for which update() returned a new one (tag not matched)
+//          This is just remove, replace, and end remove clauses
+//      Call onUnmount() for functional components if exists
 const patchVdom = (elem: Node, old_vdom: VdomNode, new_vdom: VdomNode, bindpoint: BindPoint) => {
     if (isElement(elem)) {
         patchClasses(elem, old_vdom.classes, new_vdom.classes);
@@ -240,17 +268,27 @@ const patchChildElem = (elem: Node, new_node: Node | null, old_child: NodePair |
         : null;
 
     if (new_node === null) {
+        // if (next_elem !== null && next_elem.node !== null)
+        //     callRemoveHooks(next_elem.vdom, next_elem.node);
+
         next_node !== null && elem.removeChild(next_node);
+        
         // next_node may be keyed and unused, so it might not have to be
         // removed later since it's being removed here
-        if (next_elem !== null) next_elem.node = null;
+        if (next_elem !== null && next_elem.node !== null)
+            next_elem.node = null;
 
     } else if (next_node === null || old_node === null) {
         elem.insertBefore(new_node, next_node);
 
     } else if (new_node !== next_node) {
+        // if (next_elem !== null && next_elem.node !== null)
+        //     callRemoveHooks(next_elem.vdom, next_elem.node);
+
         elem.replaceChild(new_node, next_node);
-        if (next_elem !== null) next_elem.node = null;
+
+        if (next_elem !== null && next_elem.node !== null)
+            next_elem.node = null;
     }
 
     // Mark keyed element as used from elsewhere in the child list
@@ -261,10 +299,23 @@ const patchChildElem = (elem: Node, new_node: Node | null, old_child: NodePair |
     }
 }
 
+const callRemoveHooks = (vdom: Vdom, elem: Node) => {
+    if (vdom._type === "VdomFunctional" && vdom.onUnmount !== undefined) {
+        vdom.onUnmount(vdom.state)
+    } else if (vdom._type === "VdomNode" && vdom.attributes.onremove !== undefined) {
+        vdom.attributes.onremove(vdom, elem);
+    }
+
+    // if (vdom._type === "VdomNode") {
+    //     vdom.children.forEach(child => callRemoveHooks(child, null));
+    // }
+}
+
 const removeExtraUnkeyed = (elem: Node, unkeyed: NodePair[], unused_unkeyed_start: number) => {
     for (let unkeyed_index = unused_unkeyed_start; unkeyed_index < unkeyed.length; ++unkeyed_index) {
         const removed_elem = unkeyed[unkeyed_index];
         if (removed_elem !== null && removed_elem.node !== null) {
+            callRemoveHooks(removed_elem.vdom, removed_elem.node);
             elem.removeChild(removed_elem.node)
             removed_elem.node = null;
         }
@@ -273,9 +324,10 @@ const removeExtraUnkeyed = (elem: Node, unkeyed: NodePair[], unused_unkeyed_star
 
 const removeExtraKeyed = (elem: Node, keyed: {[index: string]: NodePair}) => {
     for (const key in keyed) {
-        const removed_elem = keyed[key].node;
-        if (removed_elem !== null) {
-            elem.removeChild(removed_elem);
+        const removed_elem = keyed[key];
+        if (removed_elem !== null && removed_elem.node !== null) {
+            callRemoveHooks(removed_elem.vdom, removed_elem.node);
+            elem.removeChild(removed_elem.node);
         }
     }
 }
@@ -327,6 +379,8 @@ const patchId = (elem: Element, old_id: string | undefined, new_id: string | und
     }
 }
 
+// TODO: patchStyle()
+
 const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "id"]);
 const patchAttributes = (elem: Element, old_attr: Attributes, new_attr: Attributes, bindpoint: BindPoint) => {
     Object.entries(new_attr).forEach(([key, value]: [string, any]) => {
@@ -335,22 +389,25 @@ const patchAttributes = (elem: Element, old_attr: Attributes, new_attr: Attribut
 
             if (typeof value === "function") {
                 const event = eventName(key);
+                const ref_name = `_on${event}_ref`;
                 if (value !== old_value) {
                     if (typeof old_value === "function") {
-                        elem.removeEventListener(event, old_value)
+                        elem.removeEventListener(event, old_attr[ref_name])
                     }
-                    elem.addEventListener(event, (evt: Event) => {
+                    const handler = (evt: Event) => {
                         // Vdom received in second argument will always be to nearest VdomFunctional
                         if (!isVdomFunctional(bindpoint.binding)) {
                             throw new Error("Invalid binding: not a functional vdom");
                         }
                         value(evt, bindpoint.binding);
-                        redrawSync(bindpoint.binding);
-                    });
+                        redraw(bindpoint.binding);
+                    };
+                    new_attr[ref_name] = handler;
+                    elem.addEventListener(event, handler);
                 }
             } else if(typeof value === "boolean") {
                 if (value !== old_value) {
-                    elem.toggleAttribute(key);
+                    elem.toggleAttribute(key, value);
                 }
             } else {
                 if (value !== old_value) {

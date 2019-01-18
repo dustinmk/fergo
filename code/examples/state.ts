@@ -1,5 +1,5 @@
-import {UserVdom, v } from "src/vdom";
-import {mount} from "src/index";
+import {UserVdom, v } from "../src/vdom";
+import {mount} from "../src/index";
 import faker from "faker";
 
 interface CardProps {
@@ -55,3 +55,21 @@ mount(root_elem, root);
 //      the state can be stored outside of the v() calls, on the vdom, or a constructor can be called as needed
 // Pruning with props: if a parent redraws, the children generators will be called. Unless they handle
 //      their memoization otherwise, they will be regenerated unecessarily
+
+
+// Dependency injection into a component factory
+const di_example = (api_service: {load: () => string[]) => {
+    const generator = (vdom: UserVdom<{}, {values: string[]}>) => {
+        if (vdom.state === undefined) {
+            vdom.state = {values: []};
+        }
+
+        return v("button", {onclick: () => vdom.state.values = api_service.load()}, "Load");
+    }
+
+    return () => v(generator, {})
+}
+
+// Create factory with `const example_factory = di_example()`
+// Components can create instances with `v("div", [example_factory()])`
+// Can also just pass data as props
