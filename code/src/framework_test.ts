@@ -519,14 +519,18 @@ describe("Framework Test", () => {
 
         it("adds", () => {
             testMountCallbacks("second", (toggle, component) => v("div", [
-                toggle ? v(() => v("br")) : component
+                toggle ? component : v(() => v("br"))
             ]))
+        })
+
+        it("calls unMount on child", () => {
+            
         })
     });
 
     describe("oninit and onremove hooks", () => {
         it("replaces with same tag", () => {
-            testElementCallbacks("first", (toggle: boolean, vdom: Vdom) => {
+            testElementCallbacks("same", (toggle: boolean, vdom: Vdom) => {
                 return v("div", [
                     !toggle ? vdom : v("p", "other")
                 ])
@@ -556,6 +560,10 @@ describe("Framework Test", () => {
                 ])
             })
         })
+
+        it("calls onremove on child", () => {
+
+        })
     })
 });
 
@@ -579,12 +587,12 @@ function testMountCallbacks(when_mounted: string, root_generator: (toggle: boole
 
     if (when_mounted === "first") {
         mount(getRootElement(), root);
-        expect(onMount.calledWith(state), "onMount called").to.be.true;
+        expect(onMount.calledWith(component), "onMount called").to.be.true;
         expect(onUnmount.notCalled, "onUnmount not called").to.be.true;
 
         toggle = true;
         redraw(root);
-        expect(onUnmount.calledWith(state), "onUnmount called").to.be.true;
+        expect(onUnmount.calledWith(component), "onUnmount called").to.be.true;
         expect(onMount.calledOnce, "onMount not called").to.be.true;
 
     } else {
@@ -595,7 +603,7 @@ function testMountCallbacks(when_mounted: string, root_generator: (toggle: boole
         toggle = true;
         redraw(root);
         expect(onUnmount.notCalled, "onUnmount not called").to.be.true;
-        expect(onMount.calledWith(state), "onMount not called").to.be.true;
+        expect(onMount.calledWith(component), "onMount not called").to.be.true;
     }
 }
 
@@ -617,9 +625,19 @@ function testElementCallbacks(when_mounted: string, root_generator: (toggle: boo
         expect(oninit.calledOnce).to.be.true;
         expect(onremove.calledOnce).to.be.true;
     
-    } else {
+    } else if (when_mounted === "second") {
         mount(getRootElement(), root);
         expect(oninit.notCalled).to.be.true;
+        expect(onremove.notCalled).to.be.true;
+
+        toggle = true;
+        redraw(root);
+        expect(oninit.calledOnce).to.be.true;
+        expect(onremove.notCalled).to.be.true;
+
+    } else if (when_mounted === "same") {
+        mount(getRootElement(), root);
+        expect(oninit.calledOnce).to.be.true;
         expect(onremove.notCalled).to.be.true;
 
         toggle = true;

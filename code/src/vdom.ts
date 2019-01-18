@@ -23,8 +23,8 @@ export interface UserVdom<PropType extends {[index: string]: any}= {}, StateType
     state: StateType;
     key?: string;
     shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
-    onMount?: (state: StateType) => void;
-    onUnmount?: (state: StateType) => void;
+    onMount?: (vdom: UserVdom<PropType, StateType>) => void;
+    onUnmount?: (vdom: UserVdom<PropType, StateType>) => void;
 }
 
 export interface UserSupplied<PropType, StateType> {
@@ -32,8 +32,8 @@ export interface UserSupplied<PropType, StateType> {
     state?: StateType;
     key?: string;
     shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
-    onMount?: (state: StateType) => void;
-    onUnmount?: (state: StateType) => void;
+    onMount?: (vdom: UserVdom<PropType, StateType>) => void;
+    onUnmount?: (vdom: UserVdom<PropType, StateType>) => void;
 }
 
 export interface VdomFunctionalBase extends VdomBase {

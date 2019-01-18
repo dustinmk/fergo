@@ -4,23 +4,20 @@ import {redraw} from "./redraw";
 // Compare old and new Vdom, then put updated elem on new_vdom
 // TODO: Support child arrays
 // TODO: onremove()
-const update = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom, bindpoint: BindPoint): Node | null => {
-    if (old_vdom !== null
-        && old_elem !== null
-        && (
-            old_vdom._type !== new_vdom._type
-            || (
-                old_vdom._type === "VdomNode"
-                && new_vdom._type === "VdomNode" 
-                && new_vdom.tag === old_vdom.tag
-            )
-        )
+const update = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom | null, bindpoint: BindPoint | null): Node | null => {
+    if (new_vdom === null 
+        || new_vdom._type === "VdomNull" 
+        || (old_vdom !== null && new_vdom._type !== old_vdom._type)
     ) {
-        callRemoveHooks(old_vdom, old_elem);
-    }
+        if (old_elem !== null) {
+            updateNullNode(old_elem, old_vdom);
+        }
+    } 
+    
+    if (new_vdom === null) {
 
-    if (new_vdom._type === "VdomFunctional") {
-        return updateFunctionalVdom(old_vdom, new_vdom);
+    } else if (new_vdom._type === "VdomFunctional") {
+        return updateFunctionalVdom(old_elem, old_vdom, new_vdom);
     }
 
     else if (new_vdom._type === "VdomText") {
@@ -28,6 +25,10 @@ const update = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom, bi
     }
 
     else if (new_vdom._type === "VdomNode") {
+        if (bindpoint === null) {
+            throw new Error("Bindpoint must not be null");
+        }
+
         if (
             old_elem === null 
             || old_vdom === null 
@@ -35,6 +36,9 @@ const update = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom, bi
             || old_vdom._type === "VdomText" 
             || (old_vdom._type === "VdomNode" && old_vdom.tag !== new_vdom.tag)
         ) {
+            if (old_elem !== null) {
+                updateNullNode(old_elem, old_vdom);
+            }
             return createHTMLElement(new_vdom, bindpoint);
 
         } else if (old_vdom._type === "VdomFunctional") {
@@ -46,6 +50,37 @@ const update = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom, bi
     }
 
     return null;
+}
+
+// Called whenever a new vdom is replacing the old one or when it is replaced with null
+const updateNullNode = (old_elem: Node, old_vdom: Vdom | null) => {
+    if (old_vdom === null || old_vdom._type === "VdomNull" || old_vdom._type === "VdomText") {
+        return;
+    }
+
+    if (old_vdom._type === "VdomNode") {
+        if (old_vdom.attributes.onremove !== undefined) {
+            old_vdom.attributes.onremove(old_vdom, old_elem);
+        }
+
+        const child_nodes: Node[] = [];
+        old_elem.childNodes.forEach(child => child_nodes.push(child));
+        let child_node_index = 0;
+        
+        for (const child of old_vdom.children) {
+            if (child._type !== "VdomNull") {
+                updateNullNode(child_nodes[child_node_index], child);
+                ++child_node_index;
+            }
+        }
+
+    } else if (old_vdom._type === "VdomFunctional") {
+        if (old_vdom.onUnmount !== undefined) {
+            old_vdom.onUnmount(old_vdom);
+        }
+
+        updateNullNode(old_elem, old_vdom.instance);
+    }
 }
 
 const updateTextNode = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: VdomText) => {
@@ -60,10 +95,7 @@ const updateTextNode = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: 
     }
 }
 
-// TODO: onMount(), onUnmount()
-// mount when old_vdom === null
-// unmount when 
-const updateFunctionalVdom = (old_vdom: Vdom | null, new_vdom: VdomFunctional<any, any>): Node => {
+const updateFunctionalVdom = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: VdomFunctional<any, any>): Node => {
 
     // Share bindpoint as long as possible across all instances of this vdom
     if (old_vdom !== null && old_vdom._type === "VdomFunctional") {
@@ -75,14 +107,19 @@ const updateFunctionalVdom = (old_vdom: Vdom | null, new_vdom: VdomFunctional<an
     // Components can store state in the generator
     if (old_vdom !== null
         && old_vdom._type === "VdomFunctional"
+        && old_vdom.generator === new_vdom.generator
         && old_vdom.state !== undefined
     ) {
         new_vdom.state = old_vdom.state;
     } else {
 
         // If no last instance, this is mounted for the first time
+        if (old_elem !== null) {
+            updateNullNode(old_elem, old_vdom);
+        }
+
         if (new_vdom.onMount !== undefined) {
-            new_vdom.onMount(new_vdom.state);
+            new_vdom.onMount(new_vdom);
         }
     }
 
@@ -154,13 +191,8 @@ interface NodePair {
     node: Node | null;
 }
 
-// TODO: onremove()
-// remove when old child elem is not reused
-//      keyed: all unused keyed elems
-//      unkeyed: all elems set to null & all elems for which update() returned a new one (tag not matched)
-//          This is just remove, replace, and end remove clauses
-//      Call onUnmount() for functional components if exists
 const patchVdom = (elem: Node, old_vdom: VdomNode, new_vdom: VdomNode, bindpoint: BindPoint) => {
+
     if (isElement(elem)) {
         patchClasses(elem, old_vdom.classes, new_vdom.classes);
         patchId(elem, old_vdom.id, new_vdom.id);
@@ -299,23 +331,11 @@ const patchChildElem = (elem: Node, new_node: Node | null, old_child: NodePair |
     }
 }
 
-const callRemoveHooks = (vdom: Vdom, elem: Node) => {
-    if (vdom._type === "VdomFunctional" && vdom.onUnmount !== undefined) {
-        vdom.onUnmount(vdom.state)
-    } else if (vdom._type === "VdomNode" && vdom.attributes.onremove !== undefined) {
-        vdom.attributes.onremove(vdom, elem);
-    }
-
-    // if (vdom._type === "VdomNode") {
-    //     vdom.children.forEach(child => callRemoveHooks(child, null));
-    // }
-}
-
 const removeExtraUnkeyed = (elem: Node, unkeyed: NodePair[], unused_unkeyed_start: number) => {
     for (let unkeyed_index = unused_unkeyed_start; unkeyed_index < unkeyed.length; ++unkeyed_index) {
         const removed_elem = unkeyed[unkeyed_index];
         if (removed_elem !== null && removed_elem.node !== null) {
-            callRemoveHooks(removed_elem.vdom, removed_elem.node);
+            update(removed_elem.node, removed_elem.vdom, null, null);
             elem.removeChild(removed_elem.node)
             removed_elem.node = null;
         }
@@ -326,7 +346,7 @@ const removeExtraKeyed = (elem: Node, keyed: {[index: string]: NodePair}) => {
     for (const key in keyed) {
         const removed_elem = keyed[key];
         if (removed_elem !== null && removed_elem.node !== null) {
-            callRemoveHooks(removed_elem.vdom, removed_elem.node);
+            update(removed_elem.node, removed_elem.vdom, null, null);
             elem.removeChild(removed_elem.node);
         }
     }

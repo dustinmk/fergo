@@ -2,3 +2,5 @@ node_modules/
 code/src/**/*.js
 code/src/**/*.map
 dist/
+code/examples/**/*
+code/examples_dist/**/*
