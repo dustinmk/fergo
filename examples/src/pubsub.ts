@@ -1,4 +1,4 @@
-import {v, redraw, mount, Vdom, UserVdom} from "src";
+import {v, redraw, mount, Vdom, ComponentAttributes} from "src";
 
 // Set Up
 class DataSource<Payload> {
@@ -57,7 +57,7 @@ abstract class Component<PropType extends object = {}> {
     static MakeComponent<PropType, ComponentType extends Component>(component: new (props: PropType) => ComponentType) {
         // Create the generator once so that it compares with itself equally when checking
         // if the instance should get new props or be replaced
-        const generator = (vdom: UserVdom<PropType, ComponentType | null>) => {
+        const generator = (vdom: ComponentAttributes<PropType, ComponentType | null>) => {
             if (vdom.state === null) {
                 vdom.state = new component(vdom.props);
             }

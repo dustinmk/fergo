@@ -1,42 +1,10 @@
 // TODO: JSX compatible variant
 
-export interface VdomBase {
+interface VdomBase {
     parent: Vdom | null;
 }
 
-export interface ClassList {
-    [index: string]: string;
-}
-
-export interface VdomNode extends VdomBase {
-    _type: "VdomNode";
-    tag: string;
-    id: string | undefined;
-    attributes: CustomAttr & Attributes;
-    classes: ClassList;
-    children: Vdom[];
-}
-
-export interface UserVdom<PropType extends {[index: string]: any}= {}, StateType = {}> {
-    _type?: "VdomFunctional";
-    props: PropType;
-    state: StateType;
-    key?: string;
-    shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
-    onMount?: (vdom: UserVdom<PropType, StateType>) => void;
-    onUnmount?: (vdom: UserVdom<PropType, StateType>) => void;
-}
-
-export interface UserSupplied<PropType, StateType> {
-    props?: PropType;
-    state?: StateType;
-    key?: string;
-    shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
-    onMount?: (vdom: UserVdom<PropType, StateType>) => void;
-    onUnmount?: (vdom: UserVdom<PropType, StateType>) => void;
-}
-
-export interface VdomFunctionalBase extends VdomBase {
+export interface VdomFunctional<PropType, StateType> extends VdomBase, ComponentAttributes<PropType, StateType> {
     _type: "VdomFunctional";
     generator: VdomGenerator<any, any>;
     instance: Vdom | null;
@@ -52,11 +20,33 @@ export interface VdomFunctionalBase extends VdomBase {
     bindpoint: BindPoint;
 }
 
-export type VdomFunctional<PropType extends {[index: string]: any}, StateType>
-    = VdomFunctionalBase & UserVdom<PropType, StateType>;
+export interface ComponentAttributes<PropType = {}, StateType = {}> {
+    _type?: "VdomFunctional";
+    props: PropType;
+    state: StateType;
+    key?: string;
+    shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
+    onMount?: (vdom: ComponentAttributes<PropType, StateType>) => void;
+    onUnmount?: (vdom: ComponentAttributes<PropType, StateType>) => void;
+}
+
+export type VdomFunctionalAttributes<PropType, StateType> = Partial<ComponentAttributes<PropType, StateType>>
 
 export interface BindPoint {
-    binding: VdomFunctionalBase;
+    binding: VdomFunctional<any, any>;
+}
+
+export interface VdomNode extends VdomBase {
+    _type: "VdomNode";
+    tag: string;
+    id: string | undefined;
+    attributes: CustomAttr & Attributes;
+    classes: ClassList;
+    children: Vdom[];
+}
+
+export interface ClassList {
+    [index: string]: string;
 }
 
 export interface VdomText extends VdomBase {
@@ -83,9 +73,9 @@ interface CustomAttr {
 }
 
 export type VdomGenerator<PropType, StateType>
-    = (vdom: UserVdom<PropType, StateType>) => Vdom;
+    = (vdom: ComponentAttributes<PropType, StateType>) => Vdom;
 
-export type Child = Vdom | VdomGenerator<any, any> | string | null | boolean;
+type Child = Vdom | VdomGenerator<any, any> | string | null | boolean;
 
 // TOOD: Replace with UserSupplied<>
 export function v(selector: string): Vdom;
@@ -94,10 +84,10 @@ export function v(selector: string, children: Child[]): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child[]): Vdom;
 export function v(selector: string, children: Child): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child): Vdom;
-export function v<PropType, StateType>(selector: VdomGenerator<PropType, StateType>, props?: UserSupplied<PropType, StateType>): Vdom;
+export function v<PropType, StateType>(selector: VdomGenerator<PropType, StateType>, props?: VdomFunctionalAttributes<PropType, StateType>): Vdom;
 export function v<PropType, StateType>(
     selector: string | VdomGenerator<PropType, StateType>,
-    arg1?: CustomAttr & Attributes | Child[] | Child | UserVdom<PropType, StateType>,
+    arg1?: CustomAttr & Attributes | Child[] | Child | VdomFunctionalAttributes<PropType, StateType>,
     arg2?: Child[] | Child
 ): Vdom {
 
@@ -117,6 +107,7 @@ export function v<PropType, StateType>(
         if (isUserSupplied(arg1)) {
             return Object.assign(
                 vdom,
+                {props: null, state: null}, // Default if not specified
                 arg1,
                 bindpoint
             );
@@ -151,7 +142,7 @@ export function v<PropType, StateType>(
     return v_impl(selector, attributes, children);
 }
 
-function isUserSupplied<PropType, StateType>(arg?: CustomAttr & Attributes | Child[] | Child | UserSupplied<PropType, StateType>): arg is UserSupplied<PropType, StateType> {
+function isUserSupplied<PropType, StateType>(arg?: CustomAttr & Attributes | Child[] | Child | VdomFunctionalAttributes<PropType, StateType>): arg is VdomFunctionalAttributes<PropType, StateType> {
     return arg !== undefined
         && typeof arg === "object"
         && !Array.isArray(arg)

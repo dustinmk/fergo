@@ -1,4 +1,4 @@
-import {UserVdom, v, mount } from "src";
+import {ComponentAttributes, v, mount } from "src";
 import faker from "faker";
 
 interface CardProps {
@@ -9,7 +9,7 @@ interface CardState {
     toggle: boolean;
 }
 
-const card_generator = (vdom: UserVdom<CardProps, CardState>) => {
+const card_generator = (vdom: ComponentAttributes<CardProps, CardState>) => {
     return v("div", [
         v("p", `Card ${vdom.props.name}`),
         v("button", {

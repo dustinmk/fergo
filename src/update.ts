@@ -1,9 +1,8 @@
-import {Vdom, VdomNode, VdomText, VdomFunctional, VdomFunctionalBase, UserVdom, BindPoint, Attributes, ClassList} from "./vdom";
+import {Vdom, VdomNode, VdomText, VdomFunctional, ComponentAttributes, BindPoint, Attributes, ClassList} from "./vdom";
 import {redraw} from "./redraw";
 
 // Compare old and new Vdom, then put updated elem on new_vdom
 // TODO: Support child arrays
-// TODO: onremove()
 const update = (old_elem: Node | null, old_vdom: Vdom | null, new_vdom: Vdom | null, bindpoint: BindPoint | null): Node | null => {
     if (new_vdom === null 
         || new_vdom._type === "VdomNull" 
@@ -162,7 +161,7 @@ const updateFunctionalVdom = (old_elem: Node | null, old_vdom: Vdom | null, new_
     return new_vdom.elem;
 }
 
-const shouldUpdate = <PropType>(old_vdom: UserVdom<PropType>, new_vdom: UserVdom<PropType>) => {
+const shouldUpdate = <PropType>(old_vdom: ComponentAttributes<PropType>, new_vdom: ComponentAttributes<PropType>) => {
     if (new_vdom.shouldUpdate !== undefined) {
         return new_vdom.shouldUpdate(old_vdom.props, new_vdom.props, new_vdom.state);
     }
@@ -450,7 +449,7 @@ const patchAttributes = (elem: Element, old_attr: Attributes, new_attr: Attribut
     })
 }
 
-const isVdomFunctional = (vdom: VdomFunctionalBase | VdomFunctional<any, any>): vdom is VdomFunctional<any, any> => {
+const isVdomFunctional = (vdom: VdomFunctional<any, any>): vdom is VdomFunctional<any, any> => {
     return "state" in vdom && "props" in vdom;
 }
 

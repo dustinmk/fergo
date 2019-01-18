@@ -4,12 +4,11 @@ import jsdom from "mocha-jsdom";
 import {v, mount, redraw, redrawSync, selectRedraw, Vdom} from "src/index";
 import chaiDOM from "chai-dom";
 import beautify from "js-beautify";
-import { UserVdom } from "./vdom";
+import { ComponentAttributes } from "./vdom";
 
 chai.use(chaiDOM);
 selectRedraw(redrawSync);
 
-// TODO: Test remove hooks
 // TODO: Test onclick event handlers - replace, keep
 // TODO: Test patch attributes
 
@@ -337,7 +336,7 @@ describe("Framework Test", () => {
 
     it("Redraws from passed in vdom", () => {
         let text = "first";
-        let root: UserVdom | null = null;
+        let root: ComponentAttributes | null = null;
 
         mountAndMatch((vdom) => {
             root = vdom;
@@ -407,7 +406,7 @@ describe("Framework Test", () => {
         let change_child = "change inner first";
         let change_outer = "change outer first";
 
-        const child = (vdom: UserVdom<PropType>) => v("div", [
+        const child = (vdom: ComponentAttributes<PropType>) => v("div", [
             v("p", vdom.props.text),
             v("p", change_child)
         ]);
@@ -431,7 +430,7 @@ describe("Framework Test", () => {
 
         let props = {text: "first"};
 
-        const child = (props: PropType) => v((vdom: UserVdom<PropType>) => v("div", [
+        const child = (props: PropType) => v((vdom: ComponentAttributes<PropType>) => v("div", [
             v("p", vdom.props.text),
         ]), {props, shouldUpdate});
 
@@ -455,12 +454,12 @@ describe("Framework Test", () => {
 
         let props = {text: "text"};
         let toggle = false;
-        const child1 = (vdom: UserVdom<PropType>) => v("div", [
+        const child1 = (vdom: ComponentAttributes<PropType>) => v("div", [
             v("p", "child1"),
             v("p", vdom.props.text),
         ]);
 
-        const child2 = (vdom: UserVdom<PropType>) => v("div", [
+        const child2 = (vdom: ComponentAttributes<PropType>) => v("div", [
             v("p", "child2"),
             v("p", vdom.props.text),
         ]);
@@ -481,7 +480,7 @@ describe("Framework Test", () => {
             count: number;
         }
 
-        const generator = (vdom: UserVdom<{}, StateType>) => {
+        const generator = (vdom: ComponentAttributes<{}, StateType>) => {
             vdom.state.count += 1;
             return v("p", `${vdom.state.count}`)
         }
@@ -648,7 +647,7 @@ function testElementCallbacks(when_mounted: string, root_generator: (toggle: boo
 
 }
 
-function mountAndMatch(vdom: Vdom | ((vdom: UserVdom<any, any>) => Vdom), tag: string, result: string[]) {
+function mountAndMatch(vdom: Vdom | ((vdom: ComponentAttributes<any, any>) => Vdom), tag: string, result: string[]) {
     mount(getRootElement(), vdom);
     PRINT_HTML && printDocument();
     expect(document.querySelectorAll(tag))

@@ -1,4 +1,4 @@
-import {redraw, v, UserVdom} from "../../src";
+import {redraw, v, ComponentAttributes} from "../../src";
 import faker from "faker";
 
 export default () => {
@@ -16,7 +16,7 @@ export default () => {
         ])
     })
 
-    const child_generator = (vdom: UserVdom<{text: string}>) => {
+    const child_generator = (vdom: ComponentAttributes<{text: string}>) => {
         return v("li", vdom.props.text)
     }
 
