@@ -147,7 +147,15 @@ const generateInstance = (
 ) => {
     const generated = new_vdom.generator(new_vdom);
     generated.parent = new_vdom;
-    if (new_vdom.instance !== generated) {
+
+    // Don't update if the same instance is returned as last time
+    if (old_vdom !== null
+        && old_vdom._type === "VdomFunctional"
+        && new_vdom.instance === generated
+    ) {
+        new_vdom.instance = old_vdom.instance;
+
+    } else {
         if (old_vdom !== null && old_vdom._type === "VdomFunctional") {
             new_vdom.elem = update(
                 old_vdom.elem, 

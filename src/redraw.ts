@@ -17,10 +17,17 @@ export const redrawAsync = (vdom: Vdom) => {
 };
 
 const handleFrame = () => {
-    const read_queue = double_buffered_queue[1 - current_queue_id];
-    read_queue.forEach(queued_vdom => redrawSync(queued_vdom));
-    double_buffered_queue[1 - current_queue_id] = [];
+    // Take old write queue
+    const read_queue = double_buffered_queue[current_queue_id];
+
+    // Swap buffers
     current_queue_id = 1 - current_queue_id;
+
+    // Go through old write queue (now read queue)
+    read_queue.forEach(queued_vdom => redrawSync(queued_vdom));
+
+    // Set old write queue (now read queue) to empty
+    double_buffered_queue[1 - current_queue_id] = [];
     raf_id = 0;
 }
 

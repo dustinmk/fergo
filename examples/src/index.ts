@@ -1,11 +1,13 @@
 import {mount, v, Vdom} from "src";
 
-import todo from "./todo";
+import todo from "./todo_example";
 import closure from "./closure";
+import pubsub from "./pubsub";
 
 const examples: {[index: string]: () => Vdom } =  {
     "Todo": todo,
-    "Closure": closure
+    "Closure": closure,
+    "PubSub": pubsub
 };
 
 const root = document.getElementById("root");

@@ -50,7 +50,7 @@ module.exports = [
             extensions: [".tsx", ".ts", ".jsx", ".js", ".html"],
             alias: {
                 src: path.resolve(__dirname, "src"),
-                example: path.resolve(__dirname, "examples", "src")
+                examples: path.resolve(__dirname, "examples", "src")
             }
         },
         output: {
