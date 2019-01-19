@@ -1,8 +1,7 @@
-import {Vdom, VdomNode, VdomText, VdomFunctional, ComponentAttributes, BindPoint, Attributes, ClassList} from "./vdom";
+import {Vdom, VdomNode, VdomText, VdomFunctional, ComponentAttributes, BindPoint, Attributes, ClassList, Style} from "./vdom";
 import {redraw} from "./redraw";
 
 // Compare old and new Vdom, then put updated elem on new_vdom
-// TODO: Support child arrays
 const update = (
     old_elem: Node | null,
     old_vdom: Vdom | null,
@@ -64,8 +63,8 @@ const updateNullNode = (old_elem: Node, old_vdom: Vdom | null) => {
         }
 
     } else if (old_vdom._type === "VdomFunctional") {
-        if (old_vdom.onUnmount !== undefined) {
-            old_vdom.onUnmount(old_vdom);
+        if (old_vdom.onremove !== undefined) {
+            old_vdom.onremove(old_vdom);
         }
 
         updateNullNode(old_elem, old_vdom.instance);
@@ -130,7 +129,7 @@ const updateFunctionalVdom = (
     } else {
         old_elem !== null && updateNullNode(old_elem, old_vdom);
         generateInstance(old_elem, old_vdom, new_vdom);
-        new_vdom.onMount !== undefined && new_vdom.onMount(new_vdom);
+        new_vdom.oninit !== undefined && new_vdom.oninit(new_vdom);
     }
 
     if (new_vdom.elem === null) {
@@ -224,7 +223,7 @@ const updateNode = (
         return update(old_elem, old_vdom.instance, new_vdom, bindpoint);
 
     } else {
-        return patchVdom(old_elem, old_vdom, new_vdom, bindpoint);
+        return pathcVdomNode(old_elem, old_vdom, new_vdom, bindpoint);
     }
 }
 
@@ -234,7 +233,7 @@ interface NodePair {
     moved: boolean;   // True if not moved or replaced from original position
 }
 
-const patchVdom = (
+const pathcVdomNode = (
     elem: Node,
     old_vdom: VdomNode,
     new_vdom: VdomNode,
@@ -245,9 +244,23 @@ const patchVdom = (
         patchClasses(elem, old_vdom.classes, new_vdom.classes);
         patchId(elem, old_vdom.id, new_vdom.id);
         patchAttributes(elem, old_vdom.attributes, new_vdom.attributes, bindpoint);
+        patchStyle(
+            elem as HTMLElement,
+            old_vdom.attributes.style === undefined ? {} : old_vdom.attributes.style,
+            new_vdom.attributes.style === undefined ? {} : new_vdom.attributes.style
+        );
     }
 
-    const {dom_children, unkeyed, keyed} = mapVdomToDOM(elem, old_vdom);
+    return patchChildren(elem, old_vdom.children, new_vdom.children, bindpoint);
+}
+
+const patchChildren = (
+    elem: Node,
+    old_children: Vdom[],
+    new_children: Vdom[],
+    bindpoint: BindPoint
+) => {
+    const {dom_children, unkeyed, keyed} = mapVdomToDOM(elem, old_children);
 
     // Update children
     let next_elem_index = 0;
@@ -257,7 +270,7 @@ const patchVdom = (
     // Iterating from from to back.
     // Using Array.shift() is slightly cleaner, but a lot slower than Array.pop()
     // and indexing.
-    for (const new_child of new_vdom.children) {
+    for (const new_child of new_children) {
 
         // Find old node to refer to
         const new_key = keyOf(new_child);
@@ -267,7 +280,6 @@ const patchVdom = (
         ) || null;
 
         // Update the child
-        // TODO: Don't access elem unless necessary - pass getter or index instead
         const new_elem = old_child !== null
             ? update(old_child.node, old_child.vdom, new_child, bindpoint)
             : update(null, null, new_child, bindpoint);
@@ -294,9 +306,8 @@ const patchVdom = (
     return elem;
 }
 
-// TODO: Assign node index, not actual node to avoid accessing uncessesary nodes
 // Memoize node accesses
-const mapVdomToDOM = (elem: Node, vdom: VdomNode) => {
+const mapVdomToDOM = (elem: Node, children: Vdom[]) => {
     // Map keys
     // Vdom instances may be shared between old and new, so don't use them to
     // store information about the element.
@@ -307,7 +318,7 @@ const mapVdomToDOM = (elem: Node, vdom: VdomNode) => {
     const unkeyed: Array<NodePair> = [];            // Subset of vdom without keys
     let elem_index = 0;
 
-    for(const vdom_child of vdom.children) {
+    for(const vdom_child of children) {
         const key = keyOf(vdom_child);
         const child = vdom_child._type === "VdomNull"
             ? {vdom: vdom_child, node: null, moved: false}
@@ -454,9 +465,28 @@ const patchId = (
     }
 }
 
-// TODO: patchStyle()
+const patchStyle = (
+    elem: HTMLElement,
+    old_style: Style,
+    new_style: Style
+) => {
+    Object.keys(new_style).forEach(key => {
+        if (new_style.hasOwnProperty(key)
+            && new_style[key] !== undefined
+            && (!old_style.hasOwnProperty(key) || old_style[key] !== new_style[key])
+        ) {
+            elem.style.setProperty(key, new_style[key])
+        }
+    });
 
-const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "id"]);
+    Object.keys(old_style).forEach(key => {
+        if (old_style.hasOwnProperty(key) && !new_style.hasOwnProperty(key)) {
+            elem.style.setProperty(key, null);
+        }
+    });
+}
+
+const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "onremove", "id", "style"]);
 const patchAttributes = (
     elem: Element,
     old_attr: Attributes,

@@ -580,8 +580,8 @@ function testMountCallbacks(when_mounted: string, root_generator: (toggle: boole
     const onMount = sinon.spy((_: State) => {})
     const onUnmount = sinon.spy((_: State) => {})
     const component = v(generator, {
-        onMount: onMount,
-        onUnmount: onUnmount,
+        oninit: onMount,
+        onremove: onUnmount,
         state: state
     })
 

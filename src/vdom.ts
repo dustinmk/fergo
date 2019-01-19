@@ -28,8 +28,8 @@ export interface ComponentAttributes<PropType = {}, StateType = {}> {
     state: StateType;
     key?: string;
     shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
-    onMount?: (vdom: ComponentAttributes<PropType, StateType>) => void;
-    onUnmount?: (vdom: ComponentAttributes<PropType, StateType>) => void;
+    oninit?: (vdom: ComponentAttributes<PropType, StateType>) => void;
+    onremove?: (vdom: ComponentAttributes<PropType, StateType>) => void;
 }
 
 export type VdomFunctionalAttributes<PropType, StateType>
@@ -52,6 +52,10 @@ export interface ClassList {
     [index: string]: string;
 }
 
+export interface Style {
+    [index: string]: string;
+}
+
 export interface VdomText extends VdomBase {
     _type: "VdomText";
     text: string;
@@ -66,6 +70,7 @@ export type Vdom = VdomNode | VdomFunctional<any, any> | VdomText | VdomNull;
 export interface Attributes {
     _type?: "Attributes";
     key?: string;
+    style?: Style;
     [index: string]: any;
     oninit?: (vdom: Vdom, elem: Node) => void;
     onremove?: (vdom: Vdom, elem: Node) => void;
