@@ -231,6 +231,7 @@ const updateNode = (
 interface NodePair {
     vdom: Vdom;
     node: Node | null;
+    moved: boolean;   // True if not moved or replaced from original position
 }
 
 const patchVdom = (
@@ -283,7 +284,7 @@ const patchVdom = (
         do {
             ++next_elem_index;
             next_elem = dom_children[next_elem_index] || null
-        } while(next_elem !== null && next_elem.node === null)
+        } while(next_elem !== null && (next_elem.node === null || next_elem.moved))
     }
 
     // Remove any unrecycled elements
@@ -309,8 +310,8 @@ const mapVdomToDOM = (elem: Node, vdom: VdomNode) => {
     for(const vdom_child of vdom.children) {
         const key = keyOf(vdom_child);
         const child = vdom_child._type === "VdomNull"
-            ? {vdom: vdom_child, node: null}
-            : {vdom: vdom_child, node: child_elems[elem_index]}
+            ? {vdom: vdom_child, node: null, moved: false}
+            : {vdom: vdom_child, node: child_elems[elem_index], moved: false}
         
         if (vdom_child._type !== "VdomNull") {
             dom_children.push(child);
@@ -354,25 +355,26 @@ const patchChildElem = (
     // next_node may be keyed and unused, so it might not have to be
     // removed later since it's being removed here, so flag it with null
     // as required
-    if (new_node === null) {
-        next_node !== null && elem.removeChild(next_node);
-        if (next_elem !== null && next_elem.node !== null)
-            next_elem.node = null;
+    if (next_elem === null) {
+        new_node !== null && elem.appendChild(new_node);
+    }
+    else if (new_node === null) {
+        next_elem.node !== null && !next_elem.moved && elem.removeChild(next_elem.node);
+        next_elem.moved = true;
 
     } else if (next_node === null || old_node === null) {
         elem.insertBefore(new_node, next_node);
 
     } else if (new_node !== next_node) {
         elem.replaceChild(new_node, next_node);
-        if (next_elem !== null && next_elem.node !== null)
-            next_elem.node = null;
+        next_elem.moved = true;
     }
 
     // Mark keyed element as used from elsewhere in the child list
     // If old node is reused and replaced at a new place in the list,
     // the DOM first removes it. This is to update the list to reflect that fact.
     if (old_child !== null) {
-        old_child.node = null;
+        old_child.moved = true;
     }
 }
 
@@ -383,7 +385,7 @@ const removeExtraUnkeyed = (
 ) => {
     for (let unkeyed_index = unused_unkeyed_start; unkeyed_index < unkeyed.length; ++unkeyed_index) {
         const removed_elem = unkeyed[unkeyed_index];
-        if (removed_elem !== null && removed_elem.node !== null) {
+        if (removed_elem !== null && removed_elem.node !== null && !removed_elem.moved) {
             update(removed_elem.node, removed_elem.vdom, null, null);
             elem.removeChild(removed_elem.node)
             removed_elem.node = null;
@@ -394,7 +396,7 @@ const removeExtraUnkeyed = (
 const removeExtraKeyed = (elem: Node, keyed: {[index: string]: NodePair}) => {
     for (const key in keyed) {
         const removed_elem = keyed[key];
-        if (removed_elem !== null && removed_elem.node !== null) {
+        if (removed_elem !== null && removed_elem.node !== null && !removed_elem.moved) {
             update(removed_elem.node, removed_elem.vdom, null, null);
             elem.removeChild(removed_elem.node);
         }
