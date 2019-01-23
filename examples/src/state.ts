@@ -1,4 +1,4 @@
-import {ComponentAttributes, v, mount } from "src";
+import {ComponentAttributes, v, mount, Vdom } from "src";
 import faker from "faker";
 
 interface CardProps {
@@ -9,7 +9,51 @@ interface CardState {
     toggle: boolean;
 }
 
-const card_generator = (vdom: ComponentAttributes<CardProps, CardState>) => {
+// export const component = <PropType, StateType>(
+//     generator: (vdom: ComponentAttributes<PropType, StateType>) => Vdom,
+//     attributes: Partial<ComponentAttributes<PropType, StateType>>
+// ) => {
+//     return (props: PropType) => v(generator, {...attributes, props});
+// } 
+
+// export const component = <PropType, StateType>(
+//     generator: (vdom: ComponentAttributes<PropType, StateType>) => Vdom,
+//     attributes: Partial<ComponentAttributes<PropType, StateType>>
+// ) => {
+//     return (vdom: ComponentAttributes<PropType, StateType>) => v(generator, {...attributes, props: vdom.props});
+// }
+
+// const jsx_test = jsxComponent((vdom: ComponentAttributes<{name: string}, {count: 0}>) => {
+//     return v("div", [
+//         v("p", vdom.props.name),
+//         v("p", "" + vdom.state.count++)
+//     ])
+// }, {state: {count: 0}});
+
+// v("div", [
+//     v(jsx_test, {props: {name: "steve"}})
+// ])
+
+// const Card = component((vdom: ComponentAttributes<CardProps, CardState>) => 
+//     v("div", [
+//         v("p", `Card ${vdom.props.name}`),
+//         v("button", {
+//             onclick: () => vdom.state.toggle = !vdom.state.toggle
+//         }, "Toggle"),
+//         vdom.state.toggle && v("p", "enabled")
+//     ]
+// ), {state: {toggle: true}, key: name});
+
+const Card = (vdom: ComponentAttributes<CardProps, CardState>) => {
+
+    // Initialize component
+    if (vdom.state === undefined) {
+        vdom.shouldUpdate = (o, n) => o !== n;  // When first rendered, shouldUpdate not required
+        vdom.oninit = () => {};    // oninit called after generation
+        vdom.onremove = () => {};
+        vdom.state = {toggle: false};
+    }
+
     return v("div", [
         v("p", `Card ${vdom.props.name}`),
         v("button", {
@@ -19,7 +63,27 @@ const card_generator = (vdom: ComponentAttributes<CardProps, CardState>) => {
     ]);
 }
 
-const card = (name: string) => v(card_generator, {props: {name}, state: {toggle: true}, key: name})
+v(Card, {props: {name: "steve"}, key: "1"});
+
+const initializeWith = <PropType, StateType>(
+    generator: (vdom: ComponentAttributes<PropType, StateType>) => Vdom,
+    attributes: Partial<ComponentAttributes<PropType, StateType>>
+) => {
+    return (vdom: ComponentAttributes<PropType, StateType>) => {
+        if (vdom.state === undefined) {
+            vdom.shouldUpdate = attributes.shouldUpdate;
+            vdom.oninit = attributes.oninit;
+            vdom.onremove = attributes.onremove;
+            if(attributes.state !== undefined) vdom.state = attributes.state;
+        }
+
+        return generator(vdom);
+    }
+}
+
+export const Card2 = initializeWith((vdom: ComponentAttributes<CardProps, CardState>) => {
+    return v("p", `${vdom.props.name}: ${vdom.state.toggle}`);
+}, {state: {toggle: true}})
 
 const generate_list = () => {
     const list: string[] = [];
@@ -34,7 +98,7 @@ let name_list = generate_list();
 const root = v(() => v("div", [
     v("h1", "State example"),
     v("button", {onclick: () => name_list = faker.helpers.shuffle(name_list)}, "generate"),
-    v("ul", name_list.map((name) => card(name)))
+    v("ul", name_list.map((name) => v(Card, {props: {name}})))
 ]))
 
 // setInterval(() => {

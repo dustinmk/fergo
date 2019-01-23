@@ -12,7 +12,7 @@ selectRedraw(redrawSync);
 // TODO: Test onclick event handlers - replace, keep
 // TODO: Test patch attributes
 
-const PRINT_HTML = false;
+const PRINT_HTML = true;
 
 describe("Framework Test", () => {
     jsdom({url: "http://localhost"});
@@ -529,6 +529,9 @@ describe("Framework Test", () => {
         it("doesn't call onMount when replaced with same", () => {
             
         })
+
+        it("calls unmount on reduced size list", () => {})
+        it("calls unmount on ignored keyed element", () => {})
     });
 
     describe("oninit and onremove hooks", () => {
@@ -565,8 +568,84 @@ describe("Framework Test", () => {
         })
 
         it("calls onremove on child", () => {
-
+            
         })
+
+        it("calls onremove on reduced size list", () => {
+            testElementCallbacks("first", (toggle: boolean, vdom: Vdom) => {
+                return v("div", !toggle
+                    ? [vdom]
+                    : []
+                )
+            })
+        })
+
+        it("calls onremove on ignored keyed element", () => {
+            const oninit = sinon.spy();
+            const onremove = sinon.spy();
+            const component = v("p", {oninit, onremove, key: "2"}, "text");
+
+            let toggle = false;
+            const root = v(() => v("div", !toggle
+                ? [
+                    v("p", {key: "1"}, "1"),
+                    component,
+                    v("p", {key: "3"}, "3")
+                ]
+                : [
+                    v("p", {key: "1"}, "1"),
+                    v("p", {key: "3"}, "3")
+                ]));
+
+            mount(getRootElement(), root);
+            expect(oninit.calledOnce).to.be.true;
+            expect(onremove.called).to.be.false;
+
+            toggle = true;
+            redraw(root);
+            expect(oninit.calledOnce).to.be.true;
+            expect(onremove.calledOnce).to.be.true;
+        });
+    })
+
+    it("renders fragment good", () => {
+        let toggle = true;
+        const root = v(() => v("div", toggle
+            ? [
+                v("p", "1"),
+                [
+                    v("p", "2"),
+                    [
+                        v("p", "3"),
+                        v("p", "4"),
+                        v("p", "5")
+                    ],
+                    v("p", "6")
+                ],
+                v("p", "7")
+            ]
+            : [
+                [
+                    v("p", "7"),
+                    v("p", "6"),
+                    v("p", "5")
+                ],
+                [
+                    v("p", "4"),
+                    v("p", "3"),
+                    v("p", "2")
+                ],
+                [
+                    v("p", "1"),
+                    v("p", "8"),
+                    v("p", "9")
+                ],
+            ]));
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("p")).to.have.text(["1", "2", "3", "4", "5", "6", "7"])
+        toggle = false;
+        redraw(root)
+        expect(document.querySelectorAll("p")).to.have.text(["7", "6", "5", "4", "3", "2", "1", "8", "9"])
     })
 });
 

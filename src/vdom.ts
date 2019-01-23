@@ -56,6 +56,11 @@ export interface Style {
     [index: string]: string;
 }
 
+export interface VdomFragment extends VdomBase {
+    _type: "VdomFragment";
+    children: Vdom[];
+}
+
 export interface VdomText extends VdomBase {
     _type: "VdomText";
     text: string;
@@ -65,7 +70,7 @@ export interface VdomNull extends VdomBase {
     _type: "VdomNull";
 }
 
-export type Vdom = VdomNode | VdomFunctional<any, any> | VdomText | VdomNull;
+export type Vdom = VdomNode | VdomFragment | VdomFunctional<any, any> | VdomText | VdomNull;
 
 export interface Attributes {
     _type?: "Attributes";
@@ -83,13 +88,15 @@ interface CustomAttr {
 export type VdomGenerator<PropType, StateType>
     = (vdom: ComponentAttributes<PropType, StateType>) => Vdom;
 
-type Child = Vdom | VdomGenerator<any, any> | string | null | boolean;
+type ChildBase = Vdom | VdomGenerator<any, any> | string | null | boolean;
+interface ChildArray {
+    _type?: undefined;
+    [index: number]: ChildBase | ChildArray;
+}
+type Child = ChildBase | ChildArray;
 
-// TOOD: Replace with UserSupplied<>
 export function v(selector: string): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes): Vdom;
-export function v(selector: string, children: Child[]): Vdom;
-export function v(selector: string, attributes: CustomAttr & Attributes, children: Child[]): Vdom;
 export function v(selector: string, children: Child): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child): Vdom;
 export function v<PropType, StateType>(
@@ -177,46 +184,59 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
     };
 
     // Add the children in
-    vdom.children = children.map(child => {
-
-        // Use VdomNull as a placeholder for conditional nodes
-        if (child === null || child === undefined || child === false || child === true) {
-            return {
-                _type: "VdomNull",
-                parent: vdom,
-            } as VdomNull;
-        }
-
-        else if (typeof child === "string") {
-            return {
-                _type: "VdomText",
-                parent: vdom,
-                text: child
-            } as VdomText;
-
-        } else if(typeof child === "function") {
-            const functional_vdom = {
-                _type: "VdomFunctional",
-                parent: vdom,
-                elem: null,
-                generator: child,
-                instance: null,
-                state: null,
-                props: null,
-            };
-            
-            return Object.assign(functional_vdom, {bindpoint: {
-                binding: (functional_vdom as unknown) as VdomFunctional<any, any>
-            }}) as VdomFunctional<any, any>;
-
-        // If a vdom was already created through v(), just bind the parent
-        }  else {
-            child.parent = vdom;
-            return child;
-        }
-    });
+    vdom.children = children.map(child => childToVdom(child, vdom));
 
     return vdom;
+}
+
+const childToVdom = (child: Child, parent: Vdom) => {
+
+    // Use VdomNull as a placeholder for conditional nodes
+    if (child === null || child === undefined || child === false || child === true) {
+        return {
+            _type: "VdomNull",
+            parent: parent,
+        } as VdomNull;
+    }
+
+    else if (typeof child === "string") {
+        return {
+            _type: "VdomText",
+            parent: parent,
+            text: child
+        } as VdomText;
+
+    } else if(typeof child === "function") {
+        const functional_vdom = {
+            _type: "VdomFunctional",
+            parent: parent,
+            elem: null,
+            generator: child,
+            instance: null,
+            state: null,
+            props: null,
+        };
+        
+        return Object.assign(functional_vdom, {bindpoint: {
+            binding: (functional_vdom as unknown) as VdomFunctional<any, any>
+        }}) as VdomFunctional<any, any>;
+    } else if (Array.isArray(child)) {
+        const vdom: VdomFragment = {
+            _type: "VdomFragment",
+            parent: parent,
+            children: [],
+        };
+
+        vdom.children = child.map(fragment_child => childToVdom(fragment_child, vdom));
+        return vdom;
+
+    // If a vdom was already created through v(), just bind the parent
+    }  else if (child._type !== undefined) {
+        child.parent = parent;
+        return child;
+    } else {
+        throw new Error("Invalid child type.");
+    }
 }
 
 function find_tag(selector: string) {
