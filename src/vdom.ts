@@ -110,6 +110,7 @@ export function v<PropType, StateType>(
 ): Vdom {
 
     // Shortcut if a functional component
+    // TODO: Make monomorphic
     if(typeof selector === "function") {
         let vdom = {
             _type: "VdomFunctional",
@@ -214,12 +215,14 @@ const childToVdom = (child: Child, parent: Vdom) => {
             generator: child,
             instance: null,
             state: null,
+            initial_state: null,
             props: null,
         };
         
         return Object.assign(functional_vdom, {bindpoint: {
             binding: (functional_vdom as unknown) as VdomFunctional<any, any>
         }}) as VdomFunctional<any, any>;
+
     } else if (Array.isArray(child)) {
         const vdom: VdomFragment = {
             _type: "VdomFragment",
@@ -231,9 +234,38 @@ const childToVdom = (child: Child, parent: Vdom) => {
         return vdom;
 
     // If a vdom was already created through v(), just bind the parent
+    // Children must be unique so they can store state and elems
+    // Children are unique if parent not set since it hasn't been bound to a vdom tree yet
+    // On a redraw, the parent might be set from the old location and the vdom used only
+    // once in the new one. It is hard to determine if this is the case is the parent is set,
+    // and reusing instantiated vdoms is an uncommon use case, so copying is the best
+    // course of action.
     }  else if (child._type !== undefined) {
-        child.parent = parent;
-        return child;
+        if (child._type !== "VdomFunctional") {
+            if (child.parent !== null) {
+                return {...child, parent} as Vdom;
+            } else {
+                child.parent = parent;
+                return child;
+            }
+
+        } else {
+            // The user may store a reference to the original child and call redraw()
+            // on it. However, it might be replaced if its parent is redrawn so the user's
+            // reference is not longer in the vdom tree. Use vdom binding like in event
+            // handlers to resolve this. redraw() will redraw on the bound vdom. All
+            // copies of the original vdom instance will share the same binding instance,
+            // so they all point to the current copy.
+            const new_child: VdomFunctional<any, any> = {...child};
+            new_child.parent = parent;
+            child.bindpoint.binding = new_child;
+            child.parent = parent;
+            new_child.bindpoint = {binding: new_child}
+            if (child.state !== undefined && child.state !== null && typeof child.state === "object") {
+                child.state = {...child.state}
+            }
+            return new_child;
+        }
     } else {
         throw new Error("Invalid child type.");
     }

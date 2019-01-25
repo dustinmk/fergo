@@ -489,13 +489,93 @@ describe("Framework Test", () => {
 
         mountAndMatch(() => v("div", [
             v("h1", "root"),
-            child
+            child,
         ]), "p", ["1"])
         redrawAndMatch(child, "p", ["2"])
         redrawAndMatch(child, "p", ["3"])
         redrawAndMatch(child, "p", ["4"])
     })
 
+    it("Copies of stateful components have individual state", () => {
+        interface StateType {
+            count: number;
+        }
+
+        const generator = (vdom: ComponentAttributes<{}, StateType>) => {
+            if (vdom.state === null) {
+                vdom.state = {count: 0}
+            }
+
+            return v("p", {
+                onclick: () => {
+                    vdom.state.count += 1
+                }
+            }, `${vdom.state.count}`)
+        }
+
+        const child = v(generator, {});
+
+        const root = v(() => v("div", [
+            v("h1", "root"),
+            child,
+            child,
+            child
+        ]));
+        mountAndMatch(root, "p", ["0", "0", "0"])
+        document.querySelectorAll("p").item(1).click();
+        document.querySelectorAll("p").item(2).click();
+        document.querySelectorAll("p").item(2).click();
+        expect(document.querySelectorAll("p")).to.have.text(["0", "1", "2"])
+
+        document.querySelectorAll("p").forEach(node => node.click());
+        expect(document.querySelectorAll("p")).to.have.text(["1", "2", "3"])
+    })
+
+    it("Redraws on a copied component", () => {
+        interface StateType {
+            count: number;
+        }
+
+        const generator = (vdom: ComponentAttributes<{}, StateType>) => {
+            if (vdom.state === null) {
+                vdom.state = {count: 0}
+            } else {
+                vdom.state.count += 1
+            }
+
+            return v("p", `${vdom.state.count}`)
+        }
+
+        const child = v(generator, {});
+
+        let toggle = true;
+        const root = v(() => v("div", 
+            toggle
+            ? [
+                v("h1", "root"),
+                child,
+                child,
+                child
+            ]
+            : [
+                v("div", [
+                    child,
+                    child
+                ])
+            ]));
+        mountAndMatch(root, "p", ["0", "0", "0"])
+        redraw(child);
+        expect(document.querySelectorAll("p")).to.have.text(["0", "0", "1"])
+
+        // State is lost when element moved. This is similar behaviour to React
+        toggle = false;
+        redraw(root);
+        expect(document.querySelectorAll("p")).to.have.text(["0", "0"])
+
+        // Always assume last used copy of state is the one to redraw
+        redraw(child);
+        expect(document.querySelectorAll("p")).to.have.text(["0", "1"])
+    })
 
     describe("Mount and Unmount", () => {
         it("replaces with p", () => {
@@ -669,12 +749,12 @@ function testMountCallbacks(when_mounted: string, root_generator: (toggle: boole
 
     if (when_mounted === "first") {
         mount(getRootElement(), root);
-        expect(onMount.calledWith(component), "onMount called").to.be.true;
+        expect(onMount.calledWith(sinon.match.has("state", state)), "onMount called").to.be.true;
         expect(onUnmount.notCalled, "onUnmount not called").to.be.true;
 
         toggle = true;
         redraw(root);
-        expect(onUnmount.calledWith(component), "onUnmount called").to.be.true;
+        expect(onUnmount.calledWith(sinon.match.has("state", state)), "onUnmount called").to.be.true;
         expect(onMount.calledOnce, "onMount not called").to.be.true;
 
     } else {
@@ -685,7 +765,7 @@ function testMountCallbacks(when_mounted: string, root_generator: (toggle: boole
         toggle = true;
         redraw(root);
         expect(onUnmount.notCalled, "onUnmount not called").to.be.true;
-        expect(onMount.calledWith(component), "onMount not called").to.be.true;
+        expect(onMount.calledWith(sinon.match.has("state", state)), "onMount not called").to.be.true;
     }
 }
 

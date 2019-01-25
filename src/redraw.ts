@@ -40,28 +40,32 @@ export const redrawSync = (vdom: Vdom) => {
         }
         redrawSync(vdom.parent);
 
+    // If the vdom is an old instance, redraw the current instance
+    } else if (vdom.bindpoint.binding !== vdom) {
+        redrawSync(vdom.bindpoint.binding);
+
     } else {
         const old_elem = vdom.elem;
 
         // Force an update, ignoring if the same instance is returned
         // Only do this at the top level of a redraw cycle
         const generated = vdom.generator(vdom);
-        const elem = update(old_elem, vdom.instance, generated, vdom.bindpoint);
+        vdom.elem = update(old_elem, vdom.instance, generated, vdom.bindpoint);
         vdom.instance = generated;
         generated.parent = vdom;
         
-        if (elem === null) {
+        if (vdom.elem === null) {
             throw new Error("Root vdom must always return an element");
         }
 
         // The parent hasn't redrawn so it is the same as before. Components must
         // return an element, so the parent element will always be there.
-        if (old_elem !== elem
+        if (old_elem !== vdom.elem
             && old_elem !== null
             && old_elem.parentNode !== null
-            && elem !== null
+            && vdom.elem !== null
         ) {
-            old_elem.parentNode.replaceChild(elem, old_elem);
+            old_elem.parentNode.replaceChild(vdom.elem, old_elem);
         }
     }
 }

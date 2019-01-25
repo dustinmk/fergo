@@ -1,11 +1,14 @@
 const path = require("path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const DefinePlugin = require("webpack").DefinePlugin;
 
 // TODO: Closure Compiler
 
+const mode = "development";
+
 module.exports = [
     {
-        mode: "development",
+        mode,
         entry: "./src/index.ts",
         devtool: "source-map",
         module: {
@@ -26,10 +29,15 @@ module.exports = [
         output: {
             filename: "index.js",
             path: path.resolve(__dirname, "dist")
-        }
+        },
+        plugins: [
+            new DefinePlugin({
+                "DEBUG": mode === "development"
+            })
+        ]
     },
     {
-        mode: "development",
+        mode,
         entry: "./examples/src/index.ts",
         devtool: "source-map",
         module: {
@@ -60,7 +68,10 @@ module.exports = [
         plugins: [
             new CopyWebpackPlugin([
                 "examples/src/index.html"
-            ])
+            ]),
+            new DefinePlugin({
+                "DEBUG": mode === "development"
+            })
         ]
     }
 ]

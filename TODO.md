@@ -3,7 +3,7 @@
 - Synthetic events
     - Bind event handler at top element only. Call event handler by associating event.target with vdom and/or element
     - Especially useful for HOC that add event handles without needing to wrap it with a DOM element
-    - Use addEventListener(..., useCapture=true)
+    - Use addEventListener(..., useCapture=true)    **AT LEAST MENTION THIS IN ARTICLE**
     - Can instead find way go manipulate created dom, including components: event handler can move up to nearest functional and check if it has a callback
     - Can instead find way to manipulate wrapped component event handlers - also useful to modify other attributes.
         - Components may apply unknown attributes to its root element. This is recursive.
@@ -14,6 +14,7 @@
     - Can instead generate list of changes then act upon them
     - Can instead store dom elem on vdom, but ensure to consider old vdom to be somewhere in new vdom. Don't overwrite new.elem unless no old.elem is further needed. Can use frame-key-based double buffering.
     - Can instead cache dom tree on functional components
+    - Can instead force child vdoms to be unique and store elems on vdoms directly
 - Fragments
 - Longest common subsequence diff algorithm or proof reason why not using: 1-1 null nodes
     - Can use for Fragments only
@@ -31,6 +32,13 @@
 - Key can be number or string
 - Flatten props - all unknowns should be sent to props
 - Test for minimal node replacement
+- Remove error strings from production code - replace with `throw ""`
+- v(gen, {state}) should only set initial state. Ensure functional vdom copies have individual state
+- Put elem on vdom
+- Minification: repeated web API functions with long names can be replaced with own functions if they are shorter: a.hasOwnProperty(k) to h(a,k) plus h=(a,k)=>{return a.hasOwnProperty(k)}
+- Object.prototype.hasOwnProperty.call(obj, prop)
+- Remove event listeners on unmount of node
+- createDocumentFragment()
 
 ## Performance
 - Closure memory leaks: parent func refers to child func context, child refers to parent context
@@ -38,6 +46,8 @@
 - Minimise dom manipulation
 - Minimise garbage collection
 - Closure compiler for inlining
+- Minimize reflow
+- jsPerf and benchmark.js
 
 ## Features
 - Router
@@ -58,5 +68,6 @@
     - HOC: draggable
     - Flux
     - Pubsub (component): use prop/generator culling
-    - Non-component class: just a render () function and update component as necessay, using equal component culling
+    - Non-component class: just a render () function and update component as necessary, using equal component culling
     - Call as library inside class (like etch)
+    - object classes: click handlers on state object in order to modify state without resetting click handlers.

@@ -338,6 +338,7 @@ const patchStyle = (
     });
 }
 
+// TODO: Replace with plain object
 const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "onremove", "id", "style"]);
 const patchAttributes = (
     elem: Element,
@@ -357,6 +358,8 @@ const patchAttributes = (
                     elem.removeEventListener(event, old_attr[ref_name])
                 }
 
+                // TODO: Can remove bindpoint here since redraw() tracks it
+                // still call the user handler with value(vdom.bindpoint.binding)
                 const handler = (evt: Event) => {
                     // Vdom received in second argument will always be to nearest VdomFunctional
                     if (!isVdomFunctional(bindpoint.binding)) {

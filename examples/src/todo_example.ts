@@ -37,6 +37,12 @@ export default () => {
                 checked: anotha
             }),
             v("label", "Anotha one?"),
+            v("button", {
+                onclick: () => todos.push({
+                    done: false,
+                    text: `Anotha one ${++count}`
+                })
+            }, "Add anotha"),
             v("ul", todos.map(todo => v(Todo, {props: {todo}}))),
         ]);
     }

@@ -11,12 +11,12 @@ export const mount = (elem: HTMLElement, vdom: Vdom | VdomGenerator<any, any>)  
     }
 
     else {
-        const child = update(null, null, vdom, vdom.bindpoint);
+        vdom.elem = update(null, null, vdom, vdom.bindpoint);
         
-        if (child === null) {
+        if (vdom.elem === null) {
             throw new Error("Vdom element could not be created");
         }
     
-        elem.appendChild(child);
+        elem.appendChild(vdom.elem);
     }
 }

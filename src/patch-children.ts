@@ -151,7 +151,7 @@ const matchNewWithOld = (elem: Node, matched_vdoms: PairedDOM[], paired_old_vdom
         if (keyed.hasOwnProperty(key) && keyed[key].new_vdom === null) {
             const dom_index = keyed[key].dom_index;
             if (dom_index !== null) {
-                update(elem.childNodes.item(dom_index), keyed[key].old_vdom, null, null);
+                update(getChild(elem, dom_index), keyed[key].old_vdom, null, null);
             }
         }
     }
@@ -159,7 +159,7 @@ const matchNewWithOld = (elem: Node, matched_vdoms: PairedDOM[], paired_old_vdom
     while (unkeyed_index < unkeyed.length) {
         const removed_child = unkeyed[unkeyed_index];
         if (removed_child.dom_index !== null) {
-            update(elem.childNodes.item(removed_child.dom_index), removed_child.old_vdom, null, null);
+            update(getChild(elem, removed_child.dom_index), removed_child.old_vdom, null, null);
         }
         ++unkeyed_index;
     }
@@ -172,7 +172,7 @@ const updateVdoms = (elem: Node, bindpoint: BindPoint, matched_vdoms: PairedDOM[
         paired_vdom.new_dom = update(
             paired_vdom.dom_index === null
                 ? null
-                : elem.childNodes.item(paired_vdom.dom_index),
+                : getChild(elem, paired_vdom.dom_index),
             paired_vdom.old_vdom,
             paired_vdom.new_vdom,
             bindpoint
@@ -186,8 +186,7 @@ const patchDOMChildren = (elem: Node, old_children: PairedDOM[], new_children: P
     let old_index = 0;
     let new_index = 0;
 
-    const old_dom: Node[] = [];
-    elem.childNodes.forEach(node => old_dom.push(node));
+    const old_dom = getChildNodes(elem)
 
     while (new_index < new_children.length) {
         const old_child = old_index < old_children.length
@@ -205,7 +204,7 @@ const patchDOMChildren = (elem: Node, old_children: PairedDOM[], new_children: P
             ? new_child.new_dom
             : null;
         const old_node = old_child !== null && old_child.dom_index !== null
-            ? elem.childNodes.item(old_child.dom_index)
+            ? getChild(elem, old_child.dom_index)
             : null;
 
         if (new_node === null) {
@@ -261,4 +260,14 @@ const findFirstFrom = <ValueType>(predicate: (item: ValueType) => boolean, start
     }
 
     return undefined;
+}
+
+const getChildNodes = (elem: Node) => {
+    const children: Node[] = [];
+    elem.childNodes.forEach(child => children.push(child));
+    return children;
+}
+
+const getChild = (elem: Node, index: number) => {
+    return elem.childNodes.item(index);
 }
