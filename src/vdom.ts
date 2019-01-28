@@ -38,6 +38,7 @@ export interface ComponentAttributes<PropType = {}, StateType = {}> {
     _type?: T_VDOM_FUNCTIONAL;
     props: PropType;
     state: StateType;
+    children: Vdom[];
     key?: string;
     shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
     oninit?: (vdom: ComponentAttributes<PropType, StateType>) => void;
@@ -112,12 +113,13 @@ export function v(selector: string, children: Child): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child): Vdom;
 export function v<PropType, StateType>(
     selector: VdomGenerator<PropType, StateType>,
-    props?: VdomFunctionalAttributes<PropType, StateType>
+    props?: VdomFunctionalAttributes<PropType, StateType>,
+    children?: Child
 ): Vdom;
 export function v<PropType, StateType>(
     selector: string | VdomGenerator<PropType, StateType>,
-    arg1?: CustomAttr & Attributes | Child[] | Child | VdomFunctionalAttributes<PropType, StateType>,
-    arg2?: Child[] | Child
+    arg1?: CustomAttr & Attributes | Child | VdomFunctionalAttributes<PropType, StateType>,
+    arg2?: Child
 ): Vdom {
 
     // Shortcut if a functional component
@@ -128,21 +130,32 @@ export function v<PropType, StateType>(
             parent: null,
             elem: null,
             generator: selector,
-            instance: null
+            instance: null,
+            state: null,
+            props: null,
+            children: []
         };
         const bindpoint = {bindpoint: {
             binding: (vdom as unknown) as VdomFunctional<PropType, StateType>
         }};
 
         if (isUserSupplied(arg1)) {
+            const children = arg2 === undefined
+                ? arg1.children === undefined
+                    ? []
+                    : arg1.children
+                : Array.isArray(arg2)
+                    ? arg2
+                    : [arg2];
+
             return Object.assign(
                 vdom,
-                {props: null, state: null}, // Default if not specified
                 arg1,
-                bindpoint
+                bindpoint,
+                children
             );
         }
-        return Object.assign(vdom, bindpoint, {state: null, props: null}) as VdomFunctional<any, any>;
+        return Object.assign(vdom, bindpoint) as VdomFunctional<any, any>;
     }
 
     // Standardize arguments for v_impl()
@@ -230,6 +243,7 @@ const childToVdom = (child: Child, parent: Vdom) => {
             state: null,
             initial_state: null,
             props: null,
+            children: []
         };
         
         return Object.assign(functional_vdom, {bindpoint: {

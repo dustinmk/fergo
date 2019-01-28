@@ -14,7 +14,6 @@
 - Component Children put on props.children
 - Disable errors in production mode
 - Replace VDomNull with just null
-- Type tags as single char in prod
 - Speed up event handlers: have same event handler always, put user event handler and params in data/this. Create new func object when mounting listener and save the instance. Modify its context to update.
 - Remove makecomponent from class component. generator can be private templated static, rest. an be in view()
 - Find better component pattern

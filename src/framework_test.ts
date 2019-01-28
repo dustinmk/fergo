@@ -864,6 +864,17 @@ describe("Framework Test", () => {
         redraw(root)
         expect(document.querySelectorAll("p")).to.have.text(["3", "4"])
     })
+
+    it("Passes generator children", () => {
+        const component = (vdom: ComponentAttributes<{}, {}>) => {
+            return v("div", vdom.children);
+        };
+
+        mount(getRootElement(), v(component, {}, [
+            v("p", "1"),
+            v("p", "2")
+        ]))
+    })
 });
 
 function testMountCallbacks(when_mounted: string, root_generator: (toggle: boolean, component: Vdom) => Vdom) {
