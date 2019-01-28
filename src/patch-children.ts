@@ -4,6 +4,7 @@ import {
     VDOM_FRAGMENT,
     VDOM_FUNCTIONAL,
 } from "./constants";
+import {hasOwnProperty} from "./dom";
 import {invariant} from "src/invariant";
 import update from "src/update";
 
@@ -115,7 +116,7 @@ const clearExtraNodes = (old_parent: Vdom, keyed: Keyed, unkeyed: Unkeyed) => {
     }
 
     for (const key in keyed) {
-        if (keyed.hasOwnProperty(key)) {
+        if (hasOwnProperty(keyed, key)) {
             const removed = keyed[key];
             if (removed !== null && removed._type === VDOM_FRAGMENT && removed.parent !== null) {
                 clearExtraNodes(old_parent, {}, {index: 0, items: removed.children})
@@ -148,7 +149,7 @@ const splitKeyed = (vdoms: Vdom[]) => {
 
 const findOldVdom = (new_vdom: Vdom, keyed: Keyed, unkeyed: Unkeyed): Vdom | null => {
     const key = keyOf(new_vdom);
-    if (key !== null && keyed.hasOwnProperty(key)) {
+    if (key !== null && hasOwnProperty(keyed, key)) {
         const old_vdom = keyed[key];
         keyed[key] = null;
         return old_vdom;

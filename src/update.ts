@@ -5,6 +5,7 @@ import {
     VDOM_TEXT,
     VDOM_FUNCTIONAL,
 } from "./constants";
+import {hasOwnProperty} from "./dom";
 import {redraw} from "./redraw";
 import {patchChildren} from "./patch-children";
 
@@ -196,18 +197,17 @@ const shouldUpdate = <PropType>(
         return true;
     }
 
-    // if (typeof new_vdom === "object") {
-    // if (new_vdom.constructor === Object) {
+    if (new_vdom.props !== null && new_vdom.props.constructor === Object) {
         for (const key in old_vdom.props) {
-            if (old_vdom.props.hasOwnProperty(key)
+            if (hasOwnProperty(old_vdom.props, key)
                 && old_vdom.props[key] !== new_vdom.props[key]
             ) {
                 return true;
             }
         }
-    // } else {
-    //     return old_vdom !== new_vdom;
-    // }
+    } else {
+        return old_vdom !== new_vdom;
+    }
 
     return false;
 }
@@ -315,16 +315,16 @@ const patchStyle = (
     new_style: Style
 ) => {
     Object.keys(new_style).forEach(key => {
-        if (new_style.hasOwnProperty(key)
+        if (hasOwnProperty(new_style, key)
             && new_style[key] !== undefined
-            && (!old_style.hasOwnProperty(key) || old_style[key] !== new_style[key])
+            && (!hasOwnProperty(old_style, key) || old_style[key] !== new_style[key])
         ) {
             elem.style.setProperty(key, new_style[key])
         }
     });
 
     Object.keys(old_style).forEach(key => {
-        if (old_style.hasOwnProperty(key) && !new_style.hasOwnProperty(key)) {
+        if (hasOwnProperty(old_style, key) && !hasOwnProperty(new_style, key)) {
             elem.style.setProperty(key, null);
         }
     });

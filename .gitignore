@@ -3,3 +3,4 @@ src/**/*.js
 src/**/*.map
 dist/
 examples/dist/
+.rpt2_cache/

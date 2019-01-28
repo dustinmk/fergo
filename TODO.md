@@ -9,8 +9,6 @@
         - Components may apply unknown attributes to its root element. This is recursive.
         - Consider HOC that wraps all children with something - HOC reads and writes children for component or vdom
         - gen = (vdom) => Vdom; HOC = (gen) => (vdom) => {`mutate props and state`; const v = gen(vdom); `mutate instance attribtues`; return v;}; export default HOC(gen);
-- Longest common subsequence diff algorithm or proof reason why not using: 1-1 null nodes
-    - Can use for Fragments only
 - Disable errors in production mode
 - Remove makecomponent from class component. generator can be private templated static, rest. an be in view()
 - Find better component pattern
@@ -41,7 +39,6 @@
 
 ## Supporting Code
 - Refactor and systematically complete testing
-- Rollup
 - Benchmark
 - Examples
     - Reactive

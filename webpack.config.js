@@ -1,6 +1,7 @@
 const path = require("path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const DefinePlugin = require("webpack").DefinePlugin;
+const ClosureCompiler = require("webpack-closure-compiler")
 
 // TODO: Closure Compiler
 
@@ -33,7 +34,15 @@ module.exports = [
         plugins: [
             new DefinePlugin({
                 "DEBUG": mode === "development"
-            })
+            }),
+            // new ClosureCompiler({
+            //     compiler: {
+            //         language_in: 'ECMASCRIPT_2017',
+            //         language_out: 'ECMASCRIPT5',
+            //         compilation_level: 'ADVANCED'
+            //     },
+            //     concurrency: 3
+            // })
         ]
     },
     {

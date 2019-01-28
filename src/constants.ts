@@ -1,5 +1,5 @@
-export declare const DEBUG: boolean;
 
+export const DEBUG = true;
 
 export const VDOM_FRAGMENT = "F";
 export const VDOM_NODE = "N";
