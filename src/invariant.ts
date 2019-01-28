@@ -1,6 +1,7 @@
+import {DEBUG} from "./constants";
 
 export function invariant(condition: boolean, message: string): void | never {
-    if (true) {
+    if (DEBUG) {
         if (!condition) {
             throw new Error(message);
         }

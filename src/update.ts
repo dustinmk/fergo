@@ -330,8 +330,27 @@ const patchStyle = (
     });
 }
 
-// TODO: Replace with plain object
-const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "onremove", "style"]);
+interface Handler {
+    vdom: Vdom | null,
+    userHandler: ((event: Event, vdom: Vdom) => void) | null,
+    handler: EventHandlerNonNull;
+}
+
+const makeHandler = () => {
+    const binding: Handler = {
+        vdom: null,
+        userHandler: null,
+        handler: (event: Event) => {
+            if (binding.vdom !== null && binding.userHandler !== null) {
+                binding.userHandler(event, binding.vdom);
+                redraw(binding.vdom);
+            }
+        }
+    };
+    
+    return binding;
+}
+
 const patchAttributes = (
     elem: Element,
     old_attr: Attributes,
@@ -339,29 +358,25 @@ const patchAttributes = (
     bindpoint: BindPoint
 ) => {
     Object.entries(new_attr).forEach(([key, value]: [string, any]) => {
-        if (!EXCLUDED_ATTR.has(key) && value !== old_attr[key]) {
-            const old_value = old_attr[key];
-
+        if (!EXCLUDED_ATTR.has(key) && !isReservedAttribute(key) && value !== old_attr[key]) {
             if (typeof value === "function") {
+
+                // Inject the user-provided handler to a static event handler
+                // through the closure. Update the bound object in the event handler
+                // closure with the user-provided event handler for fast updates.
+                // Only add/remove the event handler if there was no event handler before/after
                 const event = eventName(key);
-                const ref_name = `_on${event}_ref`;
-
-                if (typeof old_value === "function") {
-                    elem.removeEventListener(event, old_attr[ref_name])
+                const ref_name = `__on${event}_ref`;
+                let handler;
+                if (old_attr[ref_name] === undefined) {
+                    handler = makeHandler();
+                    elem.addEventListener(event, handler.handler);
+                } else {
+                    handler = old_attr[ref_name];
                 }
-
-                // TODO: Can remove bindpoint here since redraw() tracks it
-                // still call the user handler with value(vdom.bindpoint.binding)
-                const handler = (evt: Event) => {
-                    // Vdom received in second argument will always be to nearest VdomFunctional
-                    if (!isVdomFunctional(bindpoint.binding)) {
-                        throw new Error("Invalid binding: not a functional vdom");
-                    }
-                    value(evt, bindpoint.binding);
-                    redraw(bindpoint.binding);
-                };
+                handler.userHandler = value;
+                handler.vdom = bindpoint.binding;
                 new_attr[ref_name] = handler;
-                elem.addEventListener(event, handler);
 
             } else if(typeof value === "boolean") {
                 elem.toggleAttribute(key, value);
@@ -379,8 +394,8 @@ const patchAttributes = (
             // on{event} were not directly added as a listener
             if (typeof value === "function" && key.substr(0, 2) === "on") {
                 const event_name = eventName(key);
-                const ref_name = `_on${event_name}_ref`;
-                elem.removeEventListener(event_name, old_attr[ref_name]);
+                const ref_name = `__on${event_name}_ref`;
+                elem.removeEventListener(event_name, old_attr[ref_name].handler);
 
             } else if (typeof value === "boolean") {
                 elem.toggleAttribute(key, false);
@@ -392,10 +407,9 @@ const patchAttributes = (
     })
 }
 
-const isVdomFunctional = (
-    vdom: VdomFunctional<any, any>
-): vdom is VdomFunctional<any, any> => {
-    return "state" in vdom && "props" in vdom;
+const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "onremove", "style"]);
+const isReservedAttribute = (key: string) => {
+    return EXCLUDED_ATTR.has(key) || key.match(/__on.*_ref/) !== null;
 }
 
 const isElement = (node: Node | null): node is Element => {
