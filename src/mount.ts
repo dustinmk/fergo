@@ -7,7 +7,7 @@ export const mount = (elem: HTMLElement, vdom: Vdom | VdomGenerator<any, any>)  
         mount(elem, v(vdom));
     }
 
-    else if (vdom._type !== VDOM_FUNCTIONAL) {
+    else if (vdom === null || vdom._type !== VDOM_FUNCTIONAL) {
         throw new Error("Root vdom must be functional");
     }
 

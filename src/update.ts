@@ -2,7 +2,6 @@ import {Vdom, VdomNode, VdomText, VdomFunctional, ComponentAttributes, BindPoint
 import {
     VDOM_NODE,
     VDOM_FRAGMENT,
-    VDOM_NULL,
     VDOM_TEXT,
     VDOM_FUNCTIONAL,
 } from "./constants";
@@ -16,7 +15,6 @@ const update = (
     bindpoint: BindPoint | null
 ): Node | null => {
     if (new_vdom === null 
-        || new_vdom._type === VDOM_NULL
         || (old_vdom !== null && new_vdom._type !== old_vdom._type)
     ) {
         if (old_vdom !== null) {
@@ -24,7 +22,7 @@ const update = (
         }
     } 
     
-    if (new_vdom === null || new_vdom._type === VDOM_NULL) {
+    if (new_vdom === null) {
         return null;
 
     } else if (new_vdom._type === VDOM_FUNCTIONAL) {
@@ -52,7 +50,7 @@ const update = (
 
 // Called whenever a new vdom is replacing the old one or when it is replaced with null
 const updateNullNode = (old_vdom: Vdom | null) => {
-    if (old_vdom === null || old_vdom._type === VDOM_NULL || old_vdom._type === VDOM_TEXT) {
+    if (old_vdom === null || old_vdom._type === VDOM_TEXT) {
         return;
     }
 
@@ -60,7 +58,7 @@ const updateNullNode = (old_vdom: Vdom | null) => {
 
         // Leaf-first order so the leaves still have the parents when called
         for (const child of old_vdom.children) {
-            if (child._type !== VDOM_NULL) {
+            if (child !== null) {
                 updateNullNode(child);
             }
         }
@@ -157,7 +155,9 @@ const generateInstance = (
     new_vdom: VdomFunctional<any, any>
 ) => {
     const generated = new_vdom.generator(new_vdom);
-    generated.parent = new_vdom;
+    if (generated !== null) {
+        generated.parent = new_vdom;
+    }
 
     // Don't update if the same instance is returned as last time
     if (old_vdom !== null
@@ -220,7 +220,6 @@ const updateNode = (
     if (
         old_vdom === null
         || old_vdom.elem === null
-        || old_vdom._type === VDOM_NULL
         || old_vdom._type === VDOM_TEXT
         || old_vdom._type === VDOM_FRAGMENT
         || (old_vdom._type === VDOM_NODE && old_vdom.tag !== new_vdom.tag)
@@ -284,7 +283,7 @@ const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint) => {
 
 const createChildren = (elem: Node, vdoms: Vdom[], bindpoint: BindPoint) => {
     for (const child of vdoms) {
-        if (child._type === VDOM_FRAGMENT) {
+        if (child !== null && child._type === VDOM_FRAGMENT) {
             createChildren(elem, child.children, bindpoint);
 
         } else {

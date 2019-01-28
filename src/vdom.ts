@@ -2,12 +2,10 @@
 import {
     T_VDOM_NODE,
     T_VDOM_FRAGMENT,
-    T_VDOM_NULL,
     T_VDOM_TEXT,
     T_VDOM_FUNCTIONAL,
     VDOM_NODE,
     VDOM_FRAGMENT,
-    VDOM_NULL,
     VDOM_TEXT,
     VDOM_FUNCTIONAL,
 } from "./constants";
@@ -78,11 +76,7 @@ export interface VdomText extends VdomBase {
     text: string;
 }
 
-export interface VdomNull extends VdomBase {
-    _type: T_VDOM_NULL;
-}
-
-export type Vdom = VdomNode | VdomFragment | VdomFunctional<any, any> | VdomText | VdomNull;
+export type Vdom = VdomNode | VdomFragment | VdomFunctional<any, any> | VdomText | null;
 
 export interface Attributes {
     _type?: undefined;
@@ -218,11 +212,7 @@ const childToVdom = (child: Child, parent: Vdom) => {
 
     // Use VdomNull as a placeholder for conditional nodes
     if (child === null || child === undefined || child === false || child === true) {
-        return {
-            _type: VDOM_NULL,
-            parent: parent,
-            elem: null
-        } as VdomNull;
+        return null;
     }
 
     else if (typeof child === "string") {
@@ -297,6 +287,10 @@ const childToVdom = (child: Child, parent: Vdom) => {
 }
 
 const copyVdom = (vdom: Vdom, parent: Vdom) => {
+    if (vdom === null) {
+        return null;
+    }
+
     if (vdom.parent === null) {
         vdom.parent = parent;
         return vdom;

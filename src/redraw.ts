@@ -35,8 +35,8 @@ const handleFrame = () => {
 // Synchronous redraw
 export const redrawSync = (vdom: Vdom) => {
     // Propagate redraw() up to closest functional vnode
-    if (vdom._type !== VDOM_FUNCTIONAL) {
-        if (vdom.parent === null) {
+    if (vdom === null || vdom._type !== VDOM_FUNCTIONAL) {
+        if (vdom === null || vdom.parent === null) {
             throw new Error("Root element must be a functional vdom");
         }
         redrawSync(vdom.parent);
@@ -53,7 +53,9 @@ export const redrawSync = (vdom: Vdom) => {
         const generated = vdom.generator(vdom);
         vdom.elem = update(vdom.instance, generated, vdom.bindpoint);
         vdom.instance = generated;
-        generated.parent = vdom;
+        if (generated !== null) {
+            generated.parent = vdom;
+        }
         
         if (vdom.elem === null) {
             throw new Error("Root vdom must always return an element");
