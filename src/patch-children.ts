@@ -1,4 +1,10 @@
 import {Vdom, BindPoint} from "src/vdom";
+import {
+    VDOM_NODE,
+    VDOM_FRAGMENT,
+    VDOM_NULL,
+    VDOM_FUNCTIONAL,
+} from "./constants";
 import {invariant} from "src/invariant";
 import update from "src/update";
 
@@ -37,10 +43,10 @@ export const patchChildren = (old_parent: Vdom, old_children: Vdom[], new_childr
             : parent_next_node;
 
         // If one or the other is a fragment, recurse
-        const old_fragment_children = old_child !== null && old_child._type === "VdomFragment"
+        const old_fragment_children = old_child !== null && old_child._type === VDOM_FRAGMENT
             ? old_child.children
             : [];
-        const new_fragment_children = new_child !== null && new_child._type === "VdomFragment"
+        const new_fragment_children = new_child !== null && new_child._type === VDOM_FRAGMENT
             ? new_child.children
             : [];
         
@@ -80,11 +86,11 @@ const findFragmentInsertPoint = (next_index: number, old_children: Vdom[]): Vdom
     }
 
     const candidate = old_children[next_index]
-    if (candidate._type === "VdomFragment") {
+    if (candidate._type === VDOM_FRAGMENT) {
         return findFragmentInsertPoint(-1, candidate.children)
     }
 
-    if (candidate._type === "VdomNull" || candidate.parent === null) {
+    if (candidate._type === VDOM_NULL || candidate.parent === null) {
         return findFragmentInsertPoint(next_index, old_children);
     }
 
@@ -98,8 +104,8 @@ const clearExtraNodes = (old_parent: Vdom, keyed: Keyed, unkeyed: Unkeyed) => {
 
     while (unkeyed.index < unkeyed.items.length) {
         const removed = unkeyed.items[unkeyed.index];
-        if (removed !== null && removed._type !== "VdomNull") {
-            if (removed._type === "VdomFragment") {
+        if (removed !== null && removed._type !== VDOM_NULL) {
+            if (removed._type === VDOM_FRAGMENT) {
                 clearExtraNodes(old_parent, {}, {index: 0, items: removed.children})
             } else {
                 removed.elem !== null && removed.parent !== null && old_parent.elem.removeChild(removed.elem);  
@@ -113,9 +119,9 @@ const clearExtraNodes = (old_parent: Vdom, keyed: Keyed, unkeyed: Unkeyed) => {
     for (const key in keyed) {
         if (keyed.hasOwnProperty(key)) {
             const removed = keyed[key];
-            if (removed !== null && removed._type === "VdomFragment" && removed.parent !== null) {
+            if (removed !== null && removed._type === VDOM_FRAGMENT && removed.parent !== null) {
                 clearExtraNodes(old_parent, {}, {index: 0, items: removed.children})
-            } else if (removed !== null && removed._type !== "VdomNull" && removed.elem !== null) {
+            } else if (removed !== null && removed._type !== VDOM_NULL && removed.elem !== null) {
                 removed.elem !== null && removed.parent !== null && old_parent.elem.removeChild(removed.elem);
                 update(removed, null, null);
             }
@@ -127,7 +133,7 @@ const splitKeyed = (vdoms: Vdom[]) => {
     const keyed: Keyed = {};
     const unkeyed: Unkeyed = {index: 0, items: []};
     for (const vdom of vdoms) {
-        if (vdom !== null && vdom._type !== "VdomNull") {
+        if (vdom !== null && vdom._type !== VDOM_NULL) {
 
             const key = keyOf(vdom);
             if (key !== null) {
@@ -204,11 +210,11 @@ const keyOf = (vdom: Vdom | null) => {
         return null;
     }
 
-    if (vdom._type === "VdomNode" && vdom.attributes.key !== undefined) {
+    if (vdom._type === VDOM_NODE && vdom.attributes.key !== undefined) {
         return vdom.attributes.key;
     }
 
-    if (vdom._type === "VdomFunctional" && vdom.key !== undefined) {
+    if (vdom._type === VDOM_FUNCTIONAL && vdom.key !== undefined) {
         return vdom.key;
     }
 

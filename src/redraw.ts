@@ -1,5 +1,6 @@
 import {Vdom} from "./vdom";
 import update from "./update";
+import {VDOM_FUNCTIONAL} from "./constants";
 
 // Limit redraws by queuing and requestAnimationFrame()
 let double_buffered_queue: Array<Vdom[]> = [[], []];
@@ -34,7 +35,7 @@ const handleFrame = () => {
 // Synchronous redraw
 export const redrawSync = (vdom: Vdom) => {
     // Propagate redraw() up to closest functional vnode
-    if (vdom._type !== "VdomFunctional") {
+    if (vdom._type !== VDOM_FUNCTIONAL) {
         if (vdom.parent === null) {
             throw new Error("Root element must be a functional vdom");
         }

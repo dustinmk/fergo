@@ -1,4 +1,5 @@
 import {v, Vdom, VdomGenerator} from "./vdom";
+import {VDOM_FUNCTIONAL} from "./constants";
 import update from "./update";
 
 export const mount = (elem: HTMLElement, vdom: Vdom | VdomGenerator<any, any>)  => {
@@ -6,7 +7,7 @@ export const mount = (elem: HTMLElement, vdom: Vdom | VdomGenerator<any, any>)  
         mount(elem, v(vdom));
     }
 
-    else if (vdom._type !== "VdomFunctional") {
+    else if (vdom._type !== VDOM_FUNCTIONAL) {
         throw new Error("Root vdom must be functional");
     }
 

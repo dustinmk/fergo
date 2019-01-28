@@ -1,4 +1,16 @@
 // TODO: JSX compatible variant
+import {
+    T_VDOM_NODE,
+    T_VDOM_FRAGMENT,
+    T_VDOM_NULL,
+    T_VDOM_TEXT,
+    T_VDOM_FUNCTIONAL,
+    VDOM_NODE,
+    VDOM_FRAGMENT,
+    VDOM_NULL,
+    VDOM_TEXT,
+    VDOM_FUNCTIONAL,
+} from "./constants";
 
 interface VdomBase {
     parent: Vdom | null;
@@ -8,7 +20,7 @@ interface VdomBase {
 export interface VdomFunctional<PropType, StateType>
     extends VdomBase, ComponentAttributes<PropType, StateType>
 {
-    _type: "VdomFunctional";
+    _type: T_VDOM_FUNCTIONAL;
     generator: VdomGenerator<any, any>;
     instance: Vdom | null;
 
@@ -23,7 +35,7 @@ export interface VdomFunctional<PropType, StateType>
 }
 
 export interface ComponentAttributes<PropType = {}, StateType = {}> {
-    _type?: "VdomFunctional";
+    _type?: T_VDOM_FUNCTIONAL;
     props: PropType;
     state: StateType;
     key?: string;
@@ -40,7 +52,7 @@ export interface BindPoint {
 }
 
 export interface VdomNode extends VdomBase {
-    _type: "VdomNode";
+    _type: T_VDOM_NODE;
     tag: string;
     attributes: CustomAttr & Attributes;
     classes: ClassList;
@@ -56,23 +68,23 @@ export interface Style {
 }
 
 export interface VdomFragment extends VdomBase {
-    _type: "VdomFragment";
+    _type: T_VDOM_FRAGMENT;
     children: Vdom[];
 }
 
 export interface VdomText extends VdomBase {
-    _type: "VdomText";
+    _type: T_VDOM_TEXT;
     text: string;
 }
 
 export interface VdomNull extends VdomBase {
-    _type: "VdomNull";
+    _type: T_VDOM_NULL;
 }
 
 export type Vdom = VdomNode | VdomFragment | VdomFunctional<any, any> | VdomText | VdomNull;
 
 export interface Attributes {
-    _type?: "Attributes";
+    _type?: undefined;
     key?: string;
     style?: Style;
     [index: string]: any;
@@ -112,7 +124,7 @@ export function v<PropType, StateType>(
     // TODO: Make monomorphic
     if(typeof selector === "function") {
         let vdom = {
-            _type: "VdomFunctional",
+            _type: VDOM_FUNCTIONAL,
             parent: null,
             elem: null,
             generator: selector,
@@ -143,7 +155,7 @@ export function v<PropType, StateType>(
         children = [arg1];
     } else if (arg1 instanceof Array) {
         children = arg1;
-    } else if (arg1 !== null && typeof arg1 === "object" && arg1._type !== undefined && arg1._type === "VdomNode") {
+    } else if (arg1 !== null && typeof arg1 === "object" && arg1._type !== undefined && arg1._type === VDOM_NODE) {
         children = [arg1];
     } else if (arg1 !== null && typeof arg1 === "object") {
         attributes = arg1;
@@ -174,7 +186,7 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
 
     // Create the vdom
     const vdom: VdomNode = {
-        _type: "VdomNode",
+        _type: VDOM_NODE,
         parent: null,
         tag: find_tag(selector),
         classes: find_classes(selector),
@@ -194,7 +206,7 @@ const childToVdom = (child: Child, parent: Vdom) => {
     // Use VdomNull as a placeholder for conditional nodes
     if (child === null || child === undefined || child === false || child === true) {
         return {
-            _type: "VdomNull",
+            _type: VDOM_NULL,
             parent: parent,
             elem: null
         } as VdomNull;
@@ -202,7 +214,7 @@ const childToVdom = (child: Child, parent: Vdom) => {
 
     else if (typeof child === "string") {
         return {
-            _type: "VdomText",
+            _type: VDOM_TEXT,
             parent: parent,
             text: child,
             elem: null
@@ -210,7 +222,7 @@ const childToVdom = (child: Child, parent: Vdom) => {
 
     } else if(typeof child === "function") {
         const functional_vdom = {
-            _type: "VdomFunctional",
+            _type: VDOM_FUNCTIONAL,
             parent: parent,
             elem: null,
             generator: child,
@@ -226,7 +238,7 @@ const childToVdom = (child: Child, parent: Vdom) => {
 
     } else if (Array.isArray(child)) {
         const vdom: VdomFragment = {
-            _type: "VdomFragment",
+            _type: VDOM_FRAGMENT,
             parent: parent,
             children: [],
             elem: null,
@@ -243,33 +255,27 @@ const childToVdom = (child: Child, parent: Vdom) => {
     // and reusing instantiated vdoms is an uncommon use case, so copying is the best
     // course of action.
     }  else if (child._type !== undefined) {
-        if (child._type !== "VdomFunctional") {
+        if (child._type !== VDOM_FUNCTIONAL) {
             return copyVdom(child, parent);
 
         } else {
-            //if (child.parent !== null) {
-                // The user may store a reference to the original child and call redraw()
-                // on it. However, it might be replaced if its parent is redrawn so the user's
-                // reference is not longer in the vdom tree. Use vdom binding like in event
-                // handlers to resolve this. redraw() will redraw on the bound vdom. All
-                // copies of the original vdom instance will share the same binding instance,
-                // so they all point to the current copy.
-                const new_child: VdomFunctional<any, any> = {...child};
-                new_child.parent = parent;
-                child.bindpoint.binding = new_child;
-                child.parent = parent;
-                child.elem = null;  // Safeguard against memory leaks
-                child.instance = null;
-                new_child.bindpoint = {binding: new_child}
-                if (child.state !== undefined && child.state !== null && typeof child.state === "object") {
-                    child.state = {...child.state}
-                }
-                return new_child;
-            // } else {
-            //     child.parent = parent;
-            //     return child;
-            // }
-            
+            // The user may store a reference to the original child and call redraw()
+            // on it. However, it might be replaced if its parent is redrawn so the user's
+            // reference is not longer in the vdom tree. Use vdom binding like in event
+            // handlers to resolve this. redraw() will redraw on the bound vdom. All
+            // copies of the original vdom instance will share the same binding instance,
+            // so they all point to the current copy.
+            const new_child: VdomFunctional<any, any> = {...child};
+            new_child.parent = parent;
+            child.bindpoint.binding = new_child;
+            child.parent = parent;
+            child.elem = null;  // Safeguard against memory leaks
+            child.instance = null;
+            new_child.bindpoint = {binding: new_child}
+            if (child.state !== undefined && child.state !== null && typeof child.state === "object") {
+                child.state = {...child.state}
+            }
+            return new_child;
         }
     } else {
         throw new Error("Invalid child type.");
@@ -287,7 +293,7 @@ const copyVdom = (vdom: Vdom, parent: Vdom) => {
         parent
     }
 
-    if (copy._type === "VdomNode") {
+    if (copy._type === VDOM_NODE) {
         copy.children = copy.children.map(child => copyVdom(child, copy))
     }
 

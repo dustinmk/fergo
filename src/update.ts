@@ -1,4 +1,11 @@
 import {Vdom, VdomNode, VdomText, VdomFunctional, ComponentAttributes, BindPoint, Attributes, ClassList, Style} from "./vdom";
+import {
+    VDOM_NODE,
+    VDOM_FRAGMENT,
+    VDOM_NULL,
+    VDOM_TEXT,
+    VDOM_FUNCTIONAL,
+} from "./constants";
 import {redraw} from "./redraw";
 import {patchChildren} from "./patch-children";
 
@@ -9,7 +16,7 @@ const update = (
     bindpoint: BindPoint | null
 ): Node | null => {
     if (new_vdom === null 
-        || new_vdom._type === "VdomNull" 
+        || new_vdom._type === VDOM_NULL
         || (old_vdom !== null && new_vdom._type !== old_vdom._type)
     ) {
         if (old_vdom !== null) {
@@ -17,22 +24,22 @@ const update = (
         }
     } 
     
-    if (new_vdom === null || new_vdom._type === "VdomNull") {
+    if (new_vdom === null || new_vdom._type === VDOM_NULL) {
         return null;
 
-    } else if (new_vdom._type === "VdomFunctional") {
+    } else if (new_vdom._type === VDOM_FUNCTIONAL) {
         new_vdom.elem = updateFunctionalVdom(old_vdom, new_vdom);
     }
 
-    else if (new_vdom._type === "VdomText") {
+    else if (new_vdom._type === VDOM_TEXT) {
         new_vdom.elem = updateTextNode(old_vdom, new_vdom);
     }
 
-    else if (new_vdom._type === "VdomFragment") {
+    else if (new_vdom._type === VDOM_FRAGMENT) {
         throw new Error("Should not be updating a VdomFragmet");
     }
 
-    else if (new_vdom._type === "VdomNode") {
+    else if (new_vdom._type === VDOM_NODE) {
         if (bindpoint === null) {
             throw new Error("Bindpoint must not be null");
         }
@@ -45,24 +52,24 @@ const update = (
 
 // Called whenever a new vdom is replacing the old one or when it is replaced with null
 const updateNullNode = (old_vdom: Vdom | null) => {
-    if (old_vdom === null || old_vdom._type === "VdomNull" || old_vdom._type === "VdomText") {
+    if (old_vdom === null || old_vdom._type === VDOM_NULL || old_vdom._type === VDOM_TEXT) {
         return;
     }
 
-    if (old_vdom._type === "VdomNode") {
+    if (old_vdom._type === VDOM_NODE || old_vdom._type === VDOM_FRAGMENT) {
 
         // Leaf-first order so the leaves still have the parents when called
         for (const child of old_vdom.children) {
-            if (child._type !== "VdomNull") {
+            if (child._type !== VDOM_NULL) {
                 updateNullNode(child);
             }
         }
 
-        if (old_vdom.attributes.onremove !== undefined) {
+        if (old_vdom._type === VDOM_NODE && old_vdom.attributes.onremove !== undefined) {
             old_vdom.elem !== null && old_vdom.attributes.onremove(old_vdom, old_vdom.elem);
         }
 
-    } else if (old_vdom._type === "VdomFunctional") {
+    } else if (old_vdom._type === VDOM_FUNCTIONAL) {
         if (old_vdom.onremove !== undefined) {
             old_vdom.onremove(old_vdom);
         }
@@ -77,7 +84,7 @@ const updateTextNode = (
     old_vdom: Vdom | null,
     new_vdom: VdomText
 ) => {
-    if (old_vdom !== null && old_vdom.elem !== null && old_vdom._type === "VdomText") {
+    if (old_vdom !== null && old_vdom.elem !== null && old_vdom._type === VDOM_TEXT) {
         const old_elem = old_vdom.elem;
         if (new_vdom.text !== old_vdom.text) {
             if(old_elem !== null) old_elem.nodeValue = new_vdom.text;
@@ -99,14 +106,14 @@ const updateFunctionalVdom = (
     // Share bindpoint as long as possible across all instances of this vdom
     // The bindpoint should be shared even for different generators since some
     // DOM elements may still be share between instances
-    if (old_vdom !== null && old_vdom._type === "VdomFunctional") {
+    if (old_vdom !== null && old_vdom._type === VDOM_FUNCTIONAL) {
         new_vdom.bindpoint = old_vdom.bindpoint;
         new_vdom.bindpoint.binding = new_vdom;
     }
 
     // Update old
     if (old_vdom !== null
-        && old_vdom._type === "VdomFunctional"
+        && old_vdom._type === VDOM_FUNCTIONAL
         && old_vdom.generator === new_vdom.generator
     ) {
         // Reuse state from last time
@@ -154,13 +161,13 @@ const generateInstance = (
 
     // Don't update if the same instance is returned as last time
     if (old_vdom !== null
-        && old_vdom._type === "VdomFunctional"
+        && old_vdom._type === VDOM_FUNCTIONAL
         && new_vdom.instance === generated
     ) {
         new_vdom.instance = old_vdom.instance;
 
     } else {
-        if (old_vdom !== null && old_vdom._type === "VdomFunctional") {
+        if (old_vdom !== null && old_vdom._type === VDOM_FUNCTIONAL) {
             new_vdom.elem = update(
                 old_vdom.instance,
                 generated,
@@ -213,17 +220,17 @@ const updateNode = (
     if (
         old_vdom === null
         || old_vdom.elem === null
-        || old_vdom._type === "VdomNull" 
-        || old_vdom._type === "VdomText" 
-        || old_vdom._type === "VdomFragment"
-        || (old_vdom._type === "VdomNode" && old_vdom.tag !== new_vdom.tag)
+        || old_vdom._type === VDOM_NULL
+        || old_vdom._type === VDOM_TEXT
+        || old_vdom._type === VDOM_FRAGMENT
+        || (old_vdom._type === VDOM_NODE && old_vdom.tag !== new_vdom.tag)
     ) {
         if (old_vdom !== null) {
             updateNullNode(old_vdom);
         }
         return createHTMLElement(new_vdom, bindpoint);
 
-    } else if (old_vdom._type === "VdomFunctional") {
+    } else if (old_vdom._type === VDOM_FUNCTIONAL) {
         return update(old_vdom.instance, new_vdom, bindpoint);
 
     } else if (old_vdom.elem !== null) {
@@ -258,7 +265,7 @@ const patchVdomNode = (
 
 const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint) => {
     if (vdom.tag === "") {
-        throw new Error("Invlaid tag");
+        throw new Error("Invalid tag");
     }
 
     const elem = document.createElement(vdom.tag);
@@ -277,7 +284,7 @@ const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint) => {
 
 const createChildren = (elem: Node, vdoms: Vdom[], bindpoint: BindPoint) => {
     for (const child of vdoms) {
-        if (child._type === "VdomFragment") {
+        if (child._type === VDOM_FRAGMENT) {
             createChildren(elem, child.children, bindpoint);
 
         } else {
