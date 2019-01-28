@@ -56,7 +56,7 @@ export default () => {
             });
             redraw(vdom);
         }
-    }, 2000);
+    }, 100);
 
     // Wrap in a component for performance - will only redraw if the
     // instance of `todo` is replaced

@@ -50,7 +50,7 @@ export const redrawSync = (vdom: Vdom) => {
         // Force an update, ignoring if the same instance is returned
         // Only do this at the top level of a redraw cycle
         const generated = vdom.generator(vdom);
-        vdom.elem = update(old_elem, vdom.instance, generated, vdom.bindpoint);
+        vdom.elem = update(vdom.instance, generated, vdom.bindpoint);
         vdom.instance = generated;
         generated.parent = vdom;
         

@@ -48,6 +48,8 @@
 - Closure compiler for inlining
 - Minimize reflow
 - jsPerf and benchmark.js
+- Pool vdoms
+- Pool nodes
 
 ## Features
 - Router

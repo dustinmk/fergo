@@ -12,7 +12,7 @@ selectRedraw(redrawSync);
 // TODO: Test onclick event handlers - replace, keep
 // TODO: Test patch attributes
 
-const PRINT_HTML = true;
+const PRINT_HTML = false;
 
 describe("Framework Test", () => {
     jsdom({url: "http://localhost"});
@@ -160,7 +160,7 @@ describe("Framework Test", () => {
         children = [c1, c3, c2];
         redrawAndMatch(root, "li", ["1", "3", "2"]);
 
-        children = [c2, c1, c3];
+        children = [c2, c1, c3]
         redrawAndMatch(root, "li", ["2", "1", "3"]);
 
         children = [c2];
@@ -726,6 +726,143 @@ describe("Framework Test", () => {
         toggle = false;
         redraw(root)
         expect(document.querySelectorAll("p")).to.have.text(["7", "6", "5", "4", "3", "2", "1", "8", "9"])
+    })
+
+    it("renders fragment good", () => {
+        let toggle = true;
+        const root = v(() => v("div", toggle
+            ? [
+                v("p", "1"),
+                [
+                    v("p", "2"),
+                    [
+                        v("p", "3"),
+                        v("p", "4")
+                    ],
+                    v("p", "6")
+                ],
+            ]
+            : [
+                [
+                    v("p", "7"),
+                    v("p", "6")
+                ],
+                [
+                    v("p", "4"),
+                    v("p", "3")
+                ],
+            ]));
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("p")).to.have.text(["1", "2", "3", "4", "6"])
+        toggle = false;
+        redraw(root)
+        expect(document.querySelectorAll("p")).to.have.text(["7", "6", "4", "3"])
+    })
+
+    it("renders fragment good", () => {
+        let toggle = true;
+        const root = v(() => v("div", toggle
+            ? [
+                v("p", "1"),
+                v("p", "2")
+            ]
+            : [
+                v("p", "1"),
+                [
+                    v("p", "3"),
+                    v("p", "4"),
+                ],
+            ]));
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("p")).to.have.text(["1", "2"])
+        toggle = false;
+        redraw(root)
+        expect(document.querySelectorAll("p")).to.have.text(["1", "3", "4"])
+    })
+
+    it("renders fragment good", () => {
+        let toggle = true;
+        const root = v(() => v("div", toggle
+            ? [
+                v("p", "1"),
+                v("p", "2")
+            ]
+            : [ 
+                [
+                    v("p", "3"),
+                    v("p", "4"),
+                ],
+                v("p", "1"),
+            ]));
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("p")).to.have.text(["1", "2"])
+        toggle = false;
+        redraw(root)
+        expect(document.querySelectorAll("p")).to.have.text(["3", "4", "1"])
+    })
+
+    it("renders fragment good", () => {
+        let toggle = true;
+        const root = v(() => v("div", toggle
+            ? [ 
+                [
+                    v("p", "3"),
+                    v("p", "4"),
+                ],
+                v("p", "1"),
+            ]
+            : [
+                v("p", "1"),
+                v("p", "2")
+            ]));
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("p")).to.have.text(["3", "4", "1"])
+        toggle = false;
+        redraw(root)
+        expect(document.querySelectorAll("p")).to.have.text(["1", "2"])
+    })
+
+    it("renders fragment good", () => {
+        let toggle = true;
+        const root = v(() => v("div", toggle
+            ? [ 
+                v("p", "1"),
+                [
+                    v("p", "3"),
+                    v("p", "4"),
+                ],
+            ]
+            : [
+                v("p", "1"),
+                v("p", "2")
+            ]));
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("p")).to.have.text(["1", "3", "4"])
+        toggle = false;
+        redraw(root)
+        expect(document.querySelectorAll("p")).to.have.text(["1", "2"])
+    })
+
+    it("renders fragment good", () => {
+        let toggle = true;
+        const root = v(() => v("div", toggle
+            ? [ 
+                [
+                    v("p", "1"),
+                    v("p", "2"),
+                ],
+            ]
+            : [
+                [
+                    v("p", "3"),
+                    v("p", "4"),
+                ],
+            ]));
+        mount(getRootElement(), root);
+        expect(document.querySelectorAll("p")).to.have.text(["1", "2"])
+        toggle = false;
+        redraw(root)
+        expect(document.querySelectorAll("p")).to.have.text(["3", "4"])
     })
 });
 

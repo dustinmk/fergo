@@ -11,7 +11,7 @@ export const mount = (elem: HTMLElement, vdom: Vdom | VdomGenerator<any, any>)  
     }
 
     else {
-        vdom.elem = update(null, null, vdom, vdom.bindpoint);
+        vdom.elem = update(null, vdom, vdom.bindpoint);
         
         if (vdom.elem === null) {
             throw new Error("Vdom element could not be created");

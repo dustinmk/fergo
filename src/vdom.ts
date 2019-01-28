@@ -2,6 +2,7 @@
 
 interface VdomBase {
     parent: Vdom | null;
+    elem: Node | null;
 }
 
 export interface VdomFunctional<PropType, StateType>
@@ -10,7 +11,6 @@ export interface VdomFunctional<PropType, StateType>
     _type: "VdomFunctional";
     generator: VdomGenerator<any, any>;
     instance: Vdom | null;
-    elem: Node | null;
 
     // A child functional component can have many instances generated before its
     // parent generates again. Each instance may have passed itself to event handlers.
@@ -181,7 +181,8 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
         id: find_id(selector),
         classes: find_classes(selector),
         attributes: {...attributes},
-        children: []
+        children: [],
+        elem: null
     };
 
     // Add the children in
@@ -197,6 +198,7 @@ const childToVdom = (child: Child, parent: Vdom) => {
         return {
             _type: "VdomNull",
             parent: parent,
+            elem: null
         } as VdomNull;
     }
 
@@ -204,7 +206,8 @@ const childToVdom = (child: Child, parent: Vdom) => {
         return {
             _type: "VdomText",
             parent: parent,
-            text: child
+            text: child,
+            elem: null
         } as VdomText;
 
     } else if(typeof child === "function") {
@@ -228,6 +231,7 @@ const childToVdom = (child: Child, parent: Vdom) => {
             _type: "VdomFragment",
             parent: parent,
             children: [],
+            elem: null,
         };
 
         vdom.children = child.map(fragment_child => childToVdom(fragment_child, vdom));
@@ -242,33 +246,54 @@ const childToVdom = (child: Child, parent: Vdom) => {
     // course of action.
     }  else if (child._type !== undefined) {
         if (child._type !== "VdomFunctional") {
-            if (child.parent !== null) {
-                return {...child, parent} as Vdom;
-            } else {
-                child.parent = parent;
-                return child;
-            }
+            return copyVdom(child, parent);
 
         } else {
-            // The user may store a reference to the original child and call redraw()
-            // on it. However, it might be replaced if its parent is redrawn so the user's
-            // reference is not longer in the vdom tree. Use vdom binding like in event
-            // handlers to resolve this. redraw() will redraw on the bound vdom. All
-            // copies of the original vdom instance will share the same binding instance,
-            // so they all point to the current copy.
-            const new_child: VdomFunctional<any, any> = {...child};
-            new_child.parent = parent;
-            child.bindpoint.binding = new_child;
-            child.parent = parent;
-            new_child.bindpoint = {binding: new_child}
-            if (child.state !== undefined && child.state !== null && typeof child.state === "object") {
-                child.state = {...child.state}
-            }
-            return new_child;
+            //if (child.parent !== null) {
+                // The user may store a reference to the original child and call redraw()
+                // on it. However, it might be replaced if its parent is redrawn so the user's
+                // reference is not longer in the vdom tree. Use vdom binding like in event
+                // handlers to resolve this. redraw() will redraw on the bound vdom. All
+                // copies of the original vdom instance will share the same binding instance,
+                // so they all point to the current copy.
+                const new_child: VdomFunctional<any, any> = {...child};
+                new_child.parent = parent;
+                child.bindpoint.binding = new_child;
+                child.parent = parent;
+                child.elem = null;  // Safeguard against memory leaks
+                child.instance = null;
+                new_child.bindpoint = {binding: new_child}
+                if (child.state !== undefined && child.state !== null && typeof child.state === "object") {
+                    child.state = {...child.state}
+                }
+                return new_child;
+            // } else {
+            //     child.parent = parent;
+            //     return child;
+            // }
+            
         }
     } else {
         throw new Error("Invalid child type.");
     }
+}
+
+const copyVdom = (vdom: Vdom, parent: Vdom) => {
+    if (vdom.parent === null) {
+        vdom.parent = parent;
+        return vdom;
+    }
+
+    const copy = {
+        ...vdom,
+        parent
+    }
+
+    if (copy._type === "VdomNode") {
+        copy.children = copy.children.map(child => copyVdom(child, copy))
+    }
+
+    return copy;
 }
 
 function find_tag(selector: string) {
