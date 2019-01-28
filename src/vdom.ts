@@ -42,7 +42,6 @@ export interface BindPoint {
 export interface VdomNode extends VdomBase {
     _type: "VdomNode";
     tag: string;
-    id: string | undefined;
     attributes: CustomAttr & Attributes;
     classes: ClassList;
     children: Vdom[];
@@ -178,9 +177,8 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
         _type: "VdomNode",
         parent: null,
         tag: find_tag(selector),
-        id: find_id(selector),
         classes: find_classes(selector),
-        attributes: {...attributes},
+        attributes: {...attributes, id: find_id(selector)},
         children: [],
         elem: null
     };

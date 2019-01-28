@@ -9,13 +9,6 @@
         - Components may apply unknown attributes to its root element. This is recursive.
         - Consider HOC that wraps all children with something - HOC reads and writes children for component or vdom
         - gen = (vdom) => Vdom; HOC = (gen) => (vdom) => {`mutate props and state`; const v = gen(vdom); `mutate instance attribtues`; return v;}; export default HOC(gen);
-- Reduce needless accessing of child dom nodes. Should be able to just provide way to access node
-    - Storing parent node + index is not good if the parent's children are modified while being used
-    - Can instead generate list of changes then act upon them
-    - Can instead store dom elem on vdom, but ensure to consider old vdom to be somewhere in new vdom. Don't overwrite new.elem unless no old.elem is further needed. Can use frame-key-based double buffering.
-    - Can instead cache dom tree on functional components
-    - Can instead force child vdoms to be unique and store elems on vdoms directly
-- Fragments
 - Longest common subsequence diff algorithm or proof reason why not using: 1-1 null nodes
     - Can use for Fragments only
 - Component Children put on props.children
@@ -34,7 +27,6 @@
 - Test for minimal node replacement
 - Remove error strings from production code - replace with `throw ""`
 - v(gen, {state}) should only set initial state. Ensure functional vdom copies have individual state
-- Put elem on vdom
 - Minification: repeated web API functions with long names can be replaced with own functions if they are shorter: a.hasOwnProperty(k) to h(a,k) plus h=(a,k)=>{return a.hasOwnProperty(k)}
 - Object.prototype.hasOwnProperty.call(obj, prop)
 - Remove event listeners on unmount of node
@@ -50,6 +42,9 @@
 - jsPerf and benchmark.js
 - Pool vdoms
 - Pool nodes
+- O(ND) or Levenshtein diff on nodes - use current pairing algorithm though for consistency
+- Have a key-only pairing algorithm - add keys on nodes when not provided.
+- Linked list memory leaks
 
 ## Features
 - Router

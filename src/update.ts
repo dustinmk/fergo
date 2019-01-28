@@ -245,7 +245,6 @@ const patchVdomNode = (
 
     if (isElement(old_vdom.elem)) {
         patchClasses(old_vdom.elem, old_vdom.classes, new_vdom.classes);
-        patchId(old_vdom.elem, old_vdom.id, new_vdom.id);
         patchAttributes(old_vdom.elem, old_vdom.attributes, new_vdom.attributes, bindpoint);
         patchStyle(
             old_vdom.elem as HTMLElement,
@@ -265,7 +264,6 @@ const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint) => {
     const elem = document.createElement(vdom.tag);
 
     patchClasses(elem, {}, vdom.classes);
-    patchId(elem, undefined, vdom.id);
     patchAttributes(elem, {}, vdom.attributes, bindpoint);
 
     createChildren(elem, vdom.children, bindpoint);
@@ -305,18 +303,6 @@ const patchClasses = (elem: Element, old_classes: ClassList, new_classes: ClassL
     })
 }
 
-const patchId = (
-    elem: Element,
-    old_id: string | undefined,
-    new_id: string | undefined
-) => {
-    if (old_id !== undefined && new_id === undefined) {
-        elem.removeAttribute("id")
-    } else if (old_id !== new_id && new_id !== undefined) {
-        elem.setAttribute("id", new_id);
-    }
-}
-
 const patchStyle = (
     elem: HTMLElement,
     old_style: Style,
@@ -339,7 +325,7 @@ const patchStyle = (
 }
 
 // TODO: Replace with plain object
-const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "onremove", "id", "style"]);
+const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "onremove", "style"]);
 const patchAttributes = (
     elem: Element,
     old_attr: Attributes,
