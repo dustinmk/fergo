@@ -365,7 +365,7 @@ describe("Framework Test", () => {
     })
 
     it("Mixes keyed elements with non-keyed", () => {
-        const [k1, k2, k3, k4, k5, k6] = [1, 2, 3, 4, 5, 6].map(n => v("li", {key: n.toString()}, `k${n}`));
+        const [k1, k2, k3, k4, k5, k6] = [1, 2, 3, 4, 5, 6].map(n => v("li", {key: n}, `k${n}`));
         const [u1, u2, u3, u4, u5, u6] = [1, 2, 3, 4, 5, 6].map(n => v("li", `u${n}`));
         let children = [k1, k2, u1, k3, u2, u3];
         const root = v(() => v("ul", children));

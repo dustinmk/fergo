@@ -39,7 +39,7 @@ export interface ComponentAttributes<PropType = {}, StateType = {}> {
     props: PropType;
     state: StateType;
     children: Vdom[];
-    key?: string;
+    key?: string | number;
     shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
     oninit?: (vdom: ComponentAttributes<PropType, StateType>) => void;
     onremove?: (vdom: ComponentAttributes<PropType, StateType>) => void;
@@ -86,7 +86,7 @@ export type Vdom = VdomNode | VdomFragment | VdomFunctional<any, any> | VdomText
 
 export interface Attributes {
     _type?: undefined;
-    key?: string;
+    key?: string | number;
     style?: Style;
     [index: string]: any;
     oninit?: (vdom: Vdom, elem: Node) => void;

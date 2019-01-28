@@ -11,7 +11,6 @@
         - gen = (vdom) => Vdom; HOC = (gen) => (vdom) => {`mutate props and state`; const v = gen(vdom); `mutate instance attribtues`; return v;}; export default HOC(gen);
 - Longest common subsequence diff algorithm or proof reason why not using: 1-1 null nodes
     - Can use for Fragments only
-- Component Children put on props.children
 - Disable errors in production mode
 - Replace VDomNull with just null
 - Speed up event handlers: have same event handler always, put user event handler and params in data/this. Create new func object when mounting listener and save the instance. Modify its context to update.
@@ -20,15 +19,12 @@
     - Copy over hooks from old vdom to new vdom
     - Create initiaizeWith() function for components: initializeWith(generator, attributes) => (vdom) => Vdom;
 - Turn VdomText into just string
-- Key can be number or string
 - Flatten props - all unknowns should be sent to props
 - Test for minimal node replacement
 - Remove error strings from production code - replace with `throw ""`
-- v(gen, {state}) should only set initial state. Ensure functional vdom copies have individual state
 - Minification: repeated web API functions with long names can be replaced with own functions if they are shorter: a.hasOwnProperty(k) to h(a,k) plus h=(a,k)=>{return a.hasOwnProperty(k)}
 - Object.prototype.hasOwnProperty.call(obj, prop)
 - Remove event listeners on unmount of node
-- createDocumentFragment()
 
 ## Performance
 - Closure memory leaks: parent func refers to child func context, child refers to parent context
