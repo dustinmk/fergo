@@ -14,7 +14,7 @@
                 "-t", "12000",
                 "-r", "ts-node/register",
                 "-r", "tsconfig-paths/register",
-                "${workspaceFolder}/src/**/*_test.ts"
+                "${workspaceFolder}/test/**/*_test.ts"
             ]
         }
     ]

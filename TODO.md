@@ -2,15 +2,13 @@
 ## Update
 - Refactor
 - Tests
-    - Split up tests
     - Fill in missing tests
     - Test for minimal node replacement
     - Build benchmarks: benchmark.js
 - Performance
-    - Ukkonen-Berghel-Roach Levenshtein diff on nodes - use current pairing algorithm though for consistency
-    - Garbage collection: Pool vdoms and nodes
-    - Pool nodes
     - Monomorhpic call sites
+    - Garbage collection: Pool vdoms and nodes
+    - Ukkonen-Berghel-Roach Levenshtein diff on nodes - use current pairing algorithm though for consistency
     - Minimize reflow
 - Memory leaks
     - Linked list memory leaks

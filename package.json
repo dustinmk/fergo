@@ -5,18 +5,20 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "webpack",
-    "test": "node node_modules/mocha/bin/_mocha --timeout 120000 -r ts-node/register -r tsconfig-paths/register src/**/*_test.ts"
+    "test": "node node_modules/mocha/bin/_mocha --timeout 120000 -r ts-node/register -r tsconfig-paths/register test/**/*_test.ts"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@ampproject/rollup-plugin-closure-compiler": "^0.8.5",
+    "@types/benchmark": "^1.0.31",
     "@types/chai": "^4.1.7",
     "@types/chai-dom": "0.0.7",
     "@types/faker": "^4.1.4",
     "@types/jquery": "^3.3.28",
     "@types/mocha": "^5.2.5",
     "@types/sinon": "^5.0.5",
+    "benchmark": "^2.1.4",
     "chai": "^4.2.0",
     "chai-dom": "^1.8.1",
     "compiler": "^0.1.2",

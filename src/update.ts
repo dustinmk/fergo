@@ -206,7 +206,7 @@ const shouldUpdate = <PropType>(
             }
         }
     } else {
-        return old_vdom !== new_vdom;
+        return old_vdom.props !== new_vdom.props;
     }
 
     return false;

@@ -12,6 +12,10 @@ export default {
   plugins: [
     typescript({
         tsconfig: "./tsconfig.json",
+        tsconfigOverride: {
+          target: "ES2015",
+          module: "ES2015"
+        },
         objectHashIgnoreUnknownHack: true
     }),
     alias({
