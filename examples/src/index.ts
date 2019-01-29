@@ -1,4 +1,4 @@
-import {mount, v, Vdom} from "src";
+import {mount, v, Vdom} from "minim/index";
 
 import todo from "./todo_example";
 import closure from "./closure";

@@ -1,4 +1,4 @@
-import {redraw, v, ComponentAttributes} from "../../src";
+import {redraw, v, ComponentAttributes} from "minim/index";
 import faker from "faker";
 
 export default () => {

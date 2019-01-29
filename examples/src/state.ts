@@ -1,4 +1,4 @@
-import {ComponentAttributes, v, mount, Vdom } from "src";
+import {ComponentAttributes, v, mount, Vdom } from "minim/index";
 import faker from "faker";
 
 interface CardProps {

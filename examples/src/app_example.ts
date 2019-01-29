@@ -1,4 +1,4 @@
-import { mount, v } from "src";
+import { mount, v } from "minim/index";
 
 // Maintain state separate from the view. The state can then
 // store the view and update it as needed in response to events

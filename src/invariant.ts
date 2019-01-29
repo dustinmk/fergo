@@ -4,7 +4,7 @@ export function invariant(condition: boolean, message: string): void | never {
     if (DEBUG) {
         if (!condition) {
             throw new Error(message);
-        }
+        } 
     }
 }
 

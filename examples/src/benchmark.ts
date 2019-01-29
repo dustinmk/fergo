@@ -1,4 +1,4 @@
-import {v, redraw, mount} from "src";
+import {v, redraw, mount} from "minim/index";
 import faker from "faker";
 
 interface Row {

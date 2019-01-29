@@ -7,7 +7,7 @@
       // "allowJs": true,                       /* Allow javascript files to be compiled. */
       // "checkJs": true,                       /* Report errors in .js files. */
       "jsx": "react",                           /* Specify JSX code generation: 'preserve', 'react-native', or 'react'. */
-      // "declaration": true,                   /* Generates corresponding '.d.ts' file. */
+      "declaration": true,                   /* Generates corresponding '.d.ts' file. */
       // "declarationMap": true,                /* Generates a sourcemap for each corresponding '.d.ts' file. */
       "sourceMap": true,                        /* Generates corresponding '.map' file. */
       // "outFile": "./dist/index.js",          /* Concatenate and emit output to single file. */
@@ -39,10 +39,11 @@
       // "moduleResolution": "node",            /* Specify module resolution strategy: 'node' (Node.js) or 'classic' (TypeScript pre-1.6). */
       "baseUrl": ".",                       /* Base directory to resolve non-absolute module names. */
       "paths": {
-        "src/*": ["src/*"],
-        "examples/*": ["examples/src/*"],
+        "minim": ["src/index.ts"],
+        "minim/*": ["src/*"],
+        "minim-examples/*": ["examples/src/*"],
         "test/*": ["test/*"],
-        "benchmark/*": ["benchmark/*"]
+        "minim-benchmark/*": ["benchmark/src/*"]
       },                                        /* A series of entries which re-map imports to lookup locations relative to the 'baseUrl'. */
       // "rootDirs": [],                        /* List of root folders whose combined content represents the structure of the project at runtime. */
       // "typeRoots": [],                       /* List of folders to include type definitions from. */
@@ -63,9 +64,9 @@
     },
     "include": [
       "src/**/*",
-      "examples/**/*",
+      "examples/src/**/*",
       "test/**/*",
-      "benchmark/**/*"
+      "benchmark/src/**/*"
     ],
     "exclude": [
       "node_modules"

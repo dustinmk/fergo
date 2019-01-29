@@ -1,4 +1,4 @@
-import {Vdom} from "src/vdom";
+import {Vdom} from "./vdom";
 
 export interface RouteMap {
     parent: RouteMap | null;

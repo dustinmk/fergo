@@ -1,6 +1,6 @@
-import {v} from "src";
-import {DataSource} from "examples/data_source";
-import {ObservingComponent} from "examples/observing_component";
+import {v, Component} from "minim/index";
+import {DataSource} from "minim-examples/data_source";
+import {ObservingComponent} from "minim-examples/observing_component";
 
 // Model
 const text_event = new DataSource<string>("init text");
@@ -36,7 +36,7 @@ interface MyProps {
     text_source: DataSource<string>;
 }
 
-const Doc = Root.Make(class extends ObservingComponent<MyProps> {
+const Doc = Component.Make(class extends ObservingComponent<MyProps> {
     private text: string = "default text";
 
     constructor(props: MyProps) {

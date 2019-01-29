@@ -1,12 +1,12 @@
-import {Vdom, BindPoint} from "src/vdom";
+import {Vdom, BindPoint} from "./vdom";
 import {
     VDOM_NODE,
     VDOM_FRAGMENT,
     VDOM_FUNCTIONAL,
 } from "./constants";
 import {hasOwnProperty} from "./dom";
-import {invariant} from "src/invariant";
-import update from "src/update";
+import {invariant} from "./invariant";
+import update from "./update";
 
 interface Keyed {
     [index: string]: Vdom | null;

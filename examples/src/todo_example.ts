@@ -1,4 +1,4 @@
-import {v, redraw, Vdom, ComponentAttributes} from "src";
+import {v, redraw, Vdom, ComponentAttributes} from "minim/index";
 
 // Todo Model
 interface Todo {
