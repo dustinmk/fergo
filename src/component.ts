@@ -1,4 +1,5 @@
-import {Vdom, v, redraw, ComponentAttributes} from "src";
+import {Vdom, v, ComponentAttributes} from "./vdom";
+import {redraw} from "./redraw";
 
 export abstract class Component<PropType extends object = {}> {
     protected abstract render(props: PropType): Vdom;
@@ -19,9 +20,10 @@ export abstract class Component<PropType extends object = {}> {
     // Return component-style vdom: v((vdom, props) => vdom, props)
     public view() {
         return this.render(this.props);
+        
     }
 
-    static MakeComponent<PropType, ComponentType extends Component>(component: new (props: PropType) => ComponentType) {
+    static Make<PropType, ComponentType extends Component>(component: new (props: PropType) => ComponentType) {
         // Create the generator once so that it compares with itself equally when checking
         // if the instance should get new props or be replaced
         const generator = (vdom: ComponentAttributes<PropType, ComponentType>) => {

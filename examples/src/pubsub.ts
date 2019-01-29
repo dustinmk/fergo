@@ -36,7 +36,7 @@ interface MyProps {
     text_source: DataSource<string>;
 }
 
-const Doc = ObservingComponent.MakeComponent(class extends ObservingComponent<MyProps> {
+const Doc = Root.Make(class extends ObservingComponent<MyProps> {
     private text: string = "default text";
 
     constructor(props: MyProps) {
