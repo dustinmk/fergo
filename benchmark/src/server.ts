@@ -79,6 +79,9 @@ app.get("/run", async (req, res) => {
 
         const benchmark_set: BenchmarkSet = {name, results: {}};
 
+        const window_handle = await driver.getWindowHandle();
+        await driver.switchTo().window(window_handle);
+
         for (const benchmark of Object.keys(benchmarks)) {
             await driver.get(`http://localhost:${port}/benchmark/?component=${benchmark}`);
             await driver.wait(until.elementLocated(By.css("body>p")));

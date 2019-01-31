@@ -273,6 +273,17 @@ describe("Core", () => {
         ]))).to.throw;
     })
 
+    it("Redraws a set of unchanging elements", () => {
+        const root = v(() => v("ul", [
+            v("p", "1"),
+            v("p", "2"),
+            v("p", "3")
+        ]));
+
+        mountAndMatch(root, "p", ["1", "2", "3"])
+        redrawAndMatch(root, "p", ["1", "2", "3"])
+    })
+
     
 });
 

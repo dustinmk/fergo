@@ -27,17 +27,15 @@ export const patchChildren = (old_parent: Vdom, old_children: Vdom[], new_childr
         throw new Error("Parent node must not be null");
     }
 
-    // const fast_elem = fastTrackText(old_parent, old_children);
-    // if (fast_elem !== null) return fast_elem;
-
     const [keyed, unkeyed] = splitKeyed(old_children);
 
     let new_index = 0;
     let next_index: number | null = -1;
+    let current_index: number | null = 0;
     while (new_index < new_children.length) {
         const new_child = new_children[new_index];
         const old_child = findOldVdom(new_child, keyed, unkeyed);
-        next_index = findNextNode(next_index, old_children);
+        next_index = findNextNode(current_index, old_children);
         const next_vdom = next_index !== null
             ? old_children[next_index]
             : parent_next_node;
@@ -71,6 +69,12 @@ export const patchChildren = (old_parent: Vdom, old_children: Vdom[], new_childr
         }
 
         ++new_index;
+        if (current_index !== null) {
+            ++current_index;
+        } else if (current_index !== null && current_index > old_children.length) {
+            current_index = null;
+        }
+        
     }
 
     clearExtraNodes(old_parent, keyed, unkeyed);
@@ -132,15 +136,12 @@ const splitKeyed = (vdoms: Vdom[]) => {
     const keyed: Keyed = {};
     const unkeyed: Unkeyed = {index: 0, items: []};
     for (const vdom of vdoms) {
-        if (vdom !== null) {
-
-            const key = keyOf(vdom);
-            if (key !== null) {
-                invariant(!(key in keyed), "Keys must be unique in a fragment");
-                keyed[key] = vdom;
-            } else {
-                unkeyed.items.push(vdom);
-            }
+        const key = keyOf(vdom);
+        if (key !== null) {
+            invariant(!(key in keyed), "Keys must be unique in a fragment");
+            keyed[key] = vdom;
+        } else {
+            unkeyed.items.push(vdom);
         }
     }
 
@@ -161,7 +162,7 @@ const findOldVdom = (new_vdom: Vdom, keyed: Keyed, unkeyed: Unkeyed): Vdom | nul
 }
 
 const findNextNode = (next_index: number | null, vdoms: Vdom[]) => {
-    if (next_index !== null) next_index += 1;
+    // if (next_index !== null) next_index += 1;
     let vdoms_next_index = next_index === null ? null : vdoms[next_index];
     while (
         next_index !== null

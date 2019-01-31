@@ -14,7 +14,6 @@ const generateDocument = () => {
             Object.keys(set.results).forEach(name =>
                 benchmark_names.add(name)));
 
-    // TODO: Clear all or remove individual sets
     return v("div", [
         v("h1", "Minim: Benchmark"),
         v("hr"),

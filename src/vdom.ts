@@ -192,12 +192,13 @@ function isUserSupplied<PropType, StateType>(
 function v_impl(selector: string, attributes: CustomAttr & Attributes, children: Child[]): Vdom {
 
     // Create the vdom
+    const {id, tag, classes} = splitSelector(selector);
     const vdom: VdomNode = {
         _type: VDOM_NODE,
         parent: null,
-        tag: find_tag(selector),
-        classes: find_classes(selector),
-        attributes: {...attributes, id: find_id(selector)},
+        tag: tag,
+        classes: classes,
+        attributes: id === undefined ? attributes : {...attributes, id},
         children: [],
         elem: null
     };
@@ -308,43 +309,58 @@ const copyVdom = (vdom: Vdom, parent: Vdom) => {
     return copy;
 }
 
-function find_tag(selector: string) {
-    const matches = selector.match(/^([\w-]+)(\.|#)?.*/);
-    if (matches === null) {
-        return "div";
-    }
-
-    if (matches.length < 2) {
-        throw new Error(`Invalid selector: ${selector}`);
-    }
-
-    return matches[1];
+interface SplitSelector {
+    id: string | undefined;
+    tag: string;
+    classes: ClassList;
 }
 
-function find_id(selector: string) {
-    const matches = selector.match(/#([\w-]+)/);
-    if (matches === null) {
-        return undefined;
-    }
-
-    if (matches.length !== 2) {
-        throw new Error(`Invalid selector: ${selector}`);
-    }
-
-    return matches[1];
+enum SelectorState {
+    TAG,
+    CLASS,
+    ID
 }
 
-function find_classes(selector: string) {
-    const matches = selector.match(/\.([\w-]+)*/g);
-
-    if (matches === null) {
-        return [];
+const placeToken = (token: string, state: SelectorState, split_selector: SplitSelector) => {
+    if (token.length === 0) {
+        return;
     }
 
-    return matches.reduce((acc: ClassList, match) => {
-        const c = match.slice(1);
-        acc[c] = c;
-        return acc;
-    }, {});
+    if (state === SelectorState.ID) {
+        split_selector.id = token;
+    } else if (state === SelectorState.TAG) {
+        split_selector.tag = token;
+    } else {
+        split_selector.classes[token] = token;
+    }
+}
+
+export const splitSelector = (selector: string) => {
+    let index = 0;
+
+    const split_selector = {
+        id: undefined,
+        tag: "div",
+        classes: {}
+    }
+
+    let token_start = 0;
+    let state: SelectorState = SelectorState.TAG;
+    while (index < selector.length) {
+        const c = selector[index];
+        if (c === ".") {
+            placeToken(selector.substring(token_start, index), state, split_selector);
+            state = SelectorState.CLASS;
+            token_start = index + 1;
+        } else if (c === "#") {
+            placeToken(selector.substring(token_start, index), state, split_selector);
+            state = SelectorState.ID;
+            token_start = index + 1;
+        }
+        ++index;
+    }
+    placeToken(selector.substring(token_start, index), state, split_selector);
+
+    return split_selector;
 }
 
