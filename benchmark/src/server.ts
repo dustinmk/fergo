@@ -34,6 +34,12 @@ const loadResults = (): Promise<BenchmarkSet[]> => {
     }));
 }
 
+const saveResults = (results: BenchmarkSet[]) => {
+    return new Promise(resolve => {
+        fs.writeFile(cache_file, JSON.stringify(results), resolve);
+    });
+}
+
 app.get("/", (_, res) => {
     // Serve up the results home page
     fs.readFile(template_file, (_, data) => {
@@ -49,7 +55,7 @@ app.get("/results", async (_, res) => {
     res.json(results);
 });
 
-app.get("/run", async (_, res) => {
+app.get("/run", async (req, res) => {
     // Start selenium benchmarks. Respond once done, but also save to disk
     let service = new chrome.ServiceBuilder(path.join(__dirname, "..", "..", "node_modules", ".bin", "chromedriver.cmd")).build();
     chrome.setDefaultService(service);
@@ -58,8 +64,21 @@ app.get("/run", async (_, res) => {
         .withCapabilities(Capabilities.chrome())
         .build();
 
+    const results = await loadResults();
+    
     try {
-        const benchmark_set: BenchmarkSet = {name: `${new Date()}`, results: {}};
+        const base_name = req.query.name === undefined
+            ? (new Date()).toTimeString()
+            : req.query.name;
+        let name = base_name;
+
+        let name_suffix = 1;
+        while (results.findIndex(result => result.name === name) >= 0) {
+            name = `${base_name} ${name_suffix++}`;
+        }
+
+        const benchmark_set: BenchmarkSet = {name, results: {}};
+
         for (const benchmark of Object.keys(benchmarks)) {
             await driver.get(`http://localhost:${port}/benchmark/?component=${benchmark}`);
             await driver.wait(until.elementLocated(By.css("body>p")));
@@ -69,10 +88,9 @@ app.get("/run", async (_, res) => {
         }
 
         driver.quit();
-        const results = await loadResults();
         results.push(benchmark_set);
 
-        fs.writeFile(cache_file, JSON.stringify(results), () => {});
+        await saveResults(results);
         res.json(results);
 
     } finally {
@@ -81,8 +99,16 @@ app.get("/run", async (_, res) => {
     }
 });
 
-app.get("/delete", (_, _1) => {
+app.get("/delete", async (req, res) => {
     // Remove a result from cache and save to disk
+    const results = await loadResults();
+    const name = req.query.name;
+    const index = results.findIndex(result => result.name === name);
+    if (index >= 0) {
+        results.splice(index, 1);
+        await saveResults(results);
+    }
+    res.json(results);
 });
 
 app.get("/benchmark", (_, res) => {

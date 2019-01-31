@@ -363,7 +363,10 @@ const patchAttributes = (
 ) => {
     Object.entries(new_attr).forEach(([key, value]: [string, any]) => {
         if (!EXCLUDED_ATTR.has(key) && !isReservedAttribute(key) && value !== old_attr[key]) {
-            if (typeof value === "function") {
+            if (key === "value") {
+                (<HTMLInputElement>elem).value = value;
+                
+            } else if (typeof value === "function") {
 
                 // Inject the user-provided handler to a static event handler
                 // through the closure. Update the bound object in the event handler
