@@ -332,7 +332,7 @@ const patchStyle = (
 
 interface Handler {
     vdom: Vdom | null,
-    userHandler: ((event: Event, vdom: Vdom) => void) | null,
+    userHandler: ((event: Event, vdom: Vdom) => void | Promise<void>) | null,
     handler: EventHandlerNonNull;
 }
 
@@ -342,8 +342,12 @@ const makeHandler = () => {
         userHandler: null,
         handler: (event: Event) => {
             if (binding.vdom !== null && binding.userHandler !== null) {
-                binding.userHandler(event, binding.vdom);
-                redraw(binding.vdom);
+                const returned = binding.userHandler(event, binding.vdom);
+                if (returned instanceof Promise) {
+                    returned.then(() => redraw(binding.vdom));
+                } else {
+                    redraw(binding.vdom);
+                }
             }
         }
     };
