@@ -9,6 +9,14 @@
     - Monomorphic call sites
     - Garbage collection: Pool vdoms and nodes
     - Ukkonen-Berghel-Roach Levenshtein diff on nodes - use current pairing algorithm though for consistency
+    - Alternate LCS:
+        - if new !== LCS and old !== LCS: replace
+        - else if old !== LCS: delete old
+        - else if new !== LCS: insert new, advance LCS
+        - else okay
+    - Alternate LIS (longest increasing subsequence)
+        - All nodes in LIS are in same order as in old, so LIS can be indexes of old
+        - New refers to old, so new string can have increasing values, and -1 otherwise
     - Minimize reflow
 - Memory leaks
     - Linked list memory leaks
@@ -43,3 +51,11 @@
 ## Article
 - Synthetic events: useCapture=true, inject event handlers on children (react doesn't allow this)
 - LCS diffing
+
+## Resources
+- https://github.com/sindresorhus/leven
+- https://github.com/sunesimonsen/ukkonen
+- https://ac.els-cdn.com/S0019995885800462/1-s2.0-S0019995885800462-main.pdf?_tid=f0f6e024-14ed-4567-9c23-8eaacebf67ff&acdnat=1549041982_fdad9e3df33d5909ee8bc9a61affaf63
+- http://www.berghel.net/publications/asm/asm.php
+- https://arxiv.org/pdf/1311.4552.pdf
+- LCIS: https://www.sciencedirect.com/science/article/pii/S1570866711000438

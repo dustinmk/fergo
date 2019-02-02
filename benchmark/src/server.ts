@@ -5,7 +5,7 @@ import path from "path";
 import mustache from "mustache";
 import {Builder, Capabilities, By, until} from "selenium-webdriver";
 import chrome from "selenium-webdriver/chrome";
-import benchmarks from "./benchmarks";
+import benchmarks from "./benchmarks/benchmarks";
 import { BenchmarkResult, BenchmarkSet } from "./benchmark-data";
 
 const app = express();

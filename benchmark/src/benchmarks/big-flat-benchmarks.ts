@@ -1,9 +1,10 @@
-import bigTable from "./big-benchmarkjs-table";
-import {Benchmark} from "./benchmark-data";
-import flatTableGenerator from "./flat-table-generator";
-import componentTableGenerator from "./component-table-generator";
-import rowWithEventHandlerGenerator from "./row-with-event-handler-generator";
-import rowWithStaticEventHandlerGenerator from "./row-with-static-event-handler-generator";
+//import bigTable from "./big-benchmarkjs-table";
+import bigTable from "../templates/big-performance-table";
+import {Benchmark} from "../benchmark-data";
+import flatTableGenerator from "../templates/flat-table-generator";
+import componentTableGenerator from "../templates/component-table-generator";
+import rowWithEventHandlerGenerator from "../templates/row-with-event-handler-generator";
+import rowWithStaticEventHandlerGenerator from "../templates/row-with-static-event-handler-generator";
 
 const bigFlatTable = bigTable(flatTableGenerator);
 const bigComponentTable = bigTable(componentTableGenerator);
@@ -13,6 +14,10 @@ const staticEventHandlerTable = bigTable(rowWithStaticEventHandlerGenerator);
 export default {
     "insert_rows": bigFlatTable("Insert 1000 rows into 5000", (rows, new_rows) => {
         rows.splice(rows.length / 2, 0, ...new_rows);
+        return rows;
+    }),
+    "update_single_row_component": bigComponentTable("Update single row of 5000: Component", (rows, new_rows) => {
+        rows[rows.length / 2] = new_rows[0];
         return rows;
     }),
     "append_rows": bigFlatTable("Append 1000 rows to 5000", (rows, new_rows) => {

@@ -16,8 +16,8 @@ export const generateRows = (count: number) => {
     for (let i = 0; i < count; ++i) {
         rows.push({
             name: `${faker.name.firstName()} ${faker.name.lastName()}`,
-            street: `${faker.address.streetAddress} ${faker.address.streetName} ${faker.address.streetSuffix}`,
-            city: `${faker.address.city} ${faker.address.state} ${faker.address.country}`,
+            street: `${faker.address.streetAddress()} ${faker.address.streetName()} ${faker.address.streetSuffix()}`,
+            city: `${faker.address.city()} ${faker.address.state()} ${faker.address.country()}`,
             phone: faker.phone.phoneNumber(),
             occupation: faker.name.jobTitle(),
             chicken_ownership: `${faker.random.number({min: 0, max: 10})}`,

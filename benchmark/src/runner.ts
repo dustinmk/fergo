@@ -1,4 +1,4 @@
-import benchmarks from "./benchmarks";
+import benchmarks from "./benchmarks/benchmarks";
 
 // Map query parameters
 const query = window.location.search.substring(1);
@@ -26,5 +26,5 @@ if (benchmarks[options.component] !== undefined) {
 } else {
     const msg_elem = document.createElement("p");
     msg_elem.textContent = `Could not locate route ${options.component}`;
-    document.body.appendChild(msg_elem);
+    document.body.insertBefore(msg_elem, document.body.firstChild);
 }
