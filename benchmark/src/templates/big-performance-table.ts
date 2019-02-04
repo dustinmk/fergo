@@ -28,8 +28,8 @@ export default (generator: (props: {rows: Row[]}) => Vdom) =>
     }
 
     const start_time = performance.now();
-    const min_time = 10 * 1000;
-    const min_iter = 50;
+    const min_time = 3 * 1000;
+    const min_iter = 10;
     let iter = 0;
     await new Promise(resolve => {
         const single_iteration = () => {

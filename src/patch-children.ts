@@ -65,6 +65,8 @@ export const patchChildren = (old_parent: Vdom, old_children: Vdom[], new_childr
         } else {
             // Otherwise, update and patch the element
             update(old_child, new_child, bindpoint);
+
+            // TODO: Make array of old indexes, get LIS from that, then patch with 3 arrays
             patchElement(old_parent.elem, old_child, new_child, next_vdom);
         }
 
