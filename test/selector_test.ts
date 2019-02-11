@@ -4,7 +4,7 @@ import chaiDOM from "chai-dom";
 
 chai.use(chaiDOM);
 
-describe.only("Selector", () => {
+describe("Selector", () => {
     it("finds empty tag", () => {
         const split = splitSelector("p")
         expect(split).to.deep.equal({id: undefined, tag: "p", classes: {}})

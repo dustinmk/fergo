@@ -59,3 +59,4 @@
 - http://www.berghel.net/publications/asm/asm.php
 - https://arxiv.org/pdf/1311.4552.pdf
 - LCIS: https://www.sciencedirect.com/science/article/pii/S1570866711000438
+- LIS: https://ac.els-cdn.com/0012365X7590103X/1-s2.0-0012365X7590103X-main.pdf?_tid=a9bd3c7d-79bd-4913-b29d-f7256d8f022d&acdnat=1549379025_5a9638650c3a3b536d4206d0c148d2f5
