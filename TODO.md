@@ -6,6 +6,7 @@
     - Fill in missing tests
     - Test for minimal node replacement
 - Performance
+    - JSDOM benchmarks for actual JS code and fine resolution timers
     - Monomorphic call sites
     - Garbage collection: Pool vdoms and nodes
     - Ukkonen-Berghel-Roach Levenshtein diff on nodes - use current pairing algorithm though for consistency
