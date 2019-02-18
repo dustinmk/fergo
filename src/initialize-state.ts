@@ -1,17 +1,21 @@
 import {ComponentAttributes, Vdom} from "./vdom";
 
-// Use inside generator: (vdom) => { initislizeState(vdom, {init_state})l return v(...); }
-export const initializeState = <StateType>(vdom: ComponentAttributes<any, StateType>, init_state: StateType) => {
-    if (vdom.state === undefined || vdom.state === null) {
-        vdom.state = init_state;
-    }
-}
-
 // HOC to wrap generator: initializeWith((vdom) => ..., {init_state})
-export const initializeWith = <PropsType, StateType>(generator: (vdom: ComponentAttributes<PropsType, StateType>) => Vdom, init_state: StateType) => {
+export const initializeWith = <PropsType, StateType>(
+    init: {
+        state: () => StateType,
+        shouldUpdate?: (old_props: PropsType, new_props: PropsType) => boolean,
+        oninit?: (vdom: ComponentAttributes<PropsType, StateType>) => void,
+        onremove?: (vdom: ComponentAttributes<PropsType, StateType>) => void
+    },
+    generator: (vdom: ComponentAttributes<PropsType, StateType>) => Vdom
+) => {
     return (vdom: ComponentAttributes<PropsType, StateType>) => {
         if (vdom.state === undefined || vdom.state === null) {
-            vdom.state = init_state;
+            vdom.state = init.state();
+            vdom.shouldUpdate = init.shouldUpdate;
+            vdom.oninit = init.oninit;
+            vdom.onremove = init.onremove;
         }
 
         return generator(vdom);

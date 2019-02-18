@@ -7,7 +7,7 @@ const buildConfig = (root_dir, entry, copy_files) => {
     return {
         mode: "development",
         entry: path.resolve(__dirname, root_dir, "src", `${entry}.ts`),
-        devtool: "source-map",
+        devtool: "inline-source-map",
         module: {
             rules: [
                 {

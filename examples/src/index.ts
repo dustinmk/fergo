@@ -3,11 +3,13 @@ import {mount, v, Vdom} from "minim/index";
 import todo from "./todo_example";
 import closure from "./closure";
 import pubsub from "./pubsub";
+import state from "./state";
 
 const examples: {[index: string]: () => Vdom } =  {
     "Todo": todo,
     "Closure": closure,
-    "PubSub": pubsub
+    "PubSub": pubsub,
+    "State": state
 };
 
 const root = document.getElementById("root");

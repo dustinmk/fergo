@@ -44,6 +44,7 @@
 - On not clicked
 - HOC: draggable
 - Flux
+- Dependency injection
 - Pubsub (component): use prop/generator culling
 - Non-component class: just a render () function and update component as necessary, using equal component culling
 - Call as library inside class (like etch)
@@ -52,6 +53,12 @@
 ## Article
 - Synthetic events: useCapture=true, inject event handlers on children (react doesn't allow this)
 - LCS diffing
+TODO: Article - functional components: explain pruning up, pruning down, pruning with props, state, keys
+Provide reasons why these behaviours are necessary and what would happen without them
+State: consider a list of card components where the user can toggle the comments on or off
+     the state can be stored outside of the v() calls, on the vdom, or a constructor can be called as needed
+Pruning with props: if a parent redraws, the children generators will be called. Unless they handle
+     their memoization otherwise, they will be regenerated unecessarily
 
 ## Resources
 - https://github.com/sindresorhus/leven
