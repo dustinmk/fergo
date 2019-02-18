@@ -239,6 +239,16 @@ describe("Core", () => {
         redrawAndMatch(root, "li", ["2", "4", "1", "5", "3", "6"])
     })
 
+    it.only("Shuffles keyed elements", () => {
+        let children = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => v("li", {key: n}, `${n}`));
+        const root = v(() => v("ul", children));
+
+        mountAndMatch(root, "li", ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
+
+        children = [3, 7, 8, 6, 0, 2, 4, 5, 1, 9].map(n => v("li", {key: n}, `${n}`));
+        redrawAndMatch(root, "li", ["3", "7", "8", "6", "0", "2", "4", "5", "1", "9"])
+    })
+
     it("Mixes keyed elements with non-keyed", () => {
         const [k1, k2, k3, k4, k5, k6] = [1, 2, 3, 4, 5, 6].map(n => v("li", {key: n}, `k${n}`));
         const [u1, u2, u3, u4, u5, u6] = [1, 2, 3, 4, 5, 6].map(n => v("li", `u${n}`));

@@ -30,6 +30,7 @@ export const patchChildren = (old_parent: Vdom, old_children: Vdom[], new_childr
 
     const [keyed, unkeyed] = splitKeyed(old_children);
     const old_node_indexes: number[] = [];
+    const matching_vdoms: Vdom[] = [];
 
     let new_index = 0;
     let current_index: number = 0;
@@ -50,12 +51,13 @@ export const patchChildren = (old_parent: Vdom, old_children: Vdom[], new_childr
         } else {
             // Otherwise, update and patch the element
             update(old_child, new_child, bindpoint);
+            matching_vdoms.push(old_child);
             
             if (new_child !== null && old_child !== null && old_child_index !== null) {
                 old_node_indexes.push(old_child_index);
                 
                 // Flag the old vdom as used
-                if (old_child !== null) old_child.parent = null;
+                // if (old_child !== null) old_child.parent = null;
             }
         }
 
@@ -64,7 +66,7 @@ export const patchChildren = (old_parent: Vdom, old_children: Vdom[], new_childr
     }
 
     const lis_new_nodes = lis(old_node_indexes);
-    patchElements(old_parent.elem, old_children, new_children, lis_new_nodes, parent_next_node === null ? null : parent_next_node.elem);
+    patchElements(old_parent.elem, old_children, new_children, matching_vdoms, lis_new_nodes, parent_next_node === null ? null : parent_next_node.elem);
     clearExtraNodes(old_parent, old_children, keyed, unkeyed);
 
     // Clear out extras and call remove hooks
@@ -168,7 +170,7 @@ const findOldVdomIndex = (new_vdom: Vdom, keyed: Keyed, unkeyed: Unkeyed): numbe
     return null;
 }
 
-const patchElements = (root_node: Node, old_vdoms: Vdom[], new_vdoms: Vdom[], lis_indices: number[], end_node: Node | null) => {
+const patchElements = (root_node: Node, old_vdoms: Vdom[], new_vdoms: Vdom[], matching_vdoms: Vdom[], lis_indices: number[], end_node: Node | null) => {
     // Consider fragments
     // Old vdoms in same order as DOM children
     // keep all old in lis if elem is same
@@ -182,13 +184,19 @@ const patchElements = (root_node: Node, old_vdoms: Vdom[], new_vdoms: Vdom[], li
     let lis_index = 0;
     let new_index = 0;
     while(new_index < new_vdoms.length) {
-        const old_vdom = old_index < old_vdoms.length ? old_vdoms[old_index] : null;
+        let old_vdom: Vdom = old_index < old_vdoms.length ? old_vdoms[old_index] : null;
         const new_vdom = new_vdoms[new_index];
+        const matching_vdom = matching_vdoms[new_index];
         const lis_vdom = lis_index < lis_indices.length ? old_vdoms[lis_indices[lis_index]] : null;
         const old_node = old_vdom === null ? null : old_vdom.elem;
         const new_node = new_vdom === null ? null : new_vdom.elem;
         const lis_node = lis_vdom === null ? null : lis_vdom.elem;
 
+        if (old_vdom !== null && old_vdom.parent === null) {
+            ++old_index;
+            continue;
+        }
+        
         // Filter out fragments
         // TODO: Prove this is correct: LIS, OLD, NEW, FRAGMENT, NULL OLD, NULL NEW, NULL LIS
         if (new_vdom !== null && new_vdom._type === VDOM_FRAGMENT) {
@@ -205,6 +213,7 @@ const patchElements = (root_node: Node, old_vdoms: Vdom[], new_vdoms: Vdom[], li
 
         if (lis_node === old_node && lis_node !== new_node) {
             new_node !== null && root_node.insertBefore(new_node, lis_node === null ? end_node : lis_node);
+            if(matching_vdom !== null) matching_vdom.parent = null;
             ++new_index;
 
         } else if (lis_node === old_node && lis_node === new_node) {
@@ -215,6 +224,7 @@ const patchElements = (root_node: Node, old_vdoms: Vdom[], new_vdoms: Vdom[], li
         } else if (lis_node !== old_node && lis_node !== new_node) {
             if (new_node !== null && old_node !== null) {
                 root_node.replaceChild(new_node, old_node);
+                if(matching_vdom !== null) matching_vdom.parent = null;
                 if(old_vdom !== null) old_vdom.parent = null;
                 ++new_index;
             } else {

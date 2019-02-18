@@ -163,7 +163,7 @@ const generateInstance = (
     // Don't update if the same instance is returned as last time
     if (old_vdom !== null
         && old_vdom._type === VDOM_FUNCTIONAL
-        && new_vdom.instance === generated
+        && old_vdom.instance === generated
     ) {
         new_vdom.instance = old_vdom.instance;
 
@@ -270,6 +270,7 @@ const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint) => {
     const elem = document.createElement(vdom.tag);
 
     patchClasses(elem, {}, vdom.classes);
+    vdom.attributes.style !== undefined && patchStyle(elem, {}, vdom.attributes.style);
     patchAttributes(elem, {}, vdom.attributes, bindpoint);
 
     createChildren(elem, vdom.children, bindpoint);
