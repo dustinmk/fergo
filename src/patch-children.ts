@@ -4,7 +4,6 @@ import {
     VDOM_FRAGMENT,
     VDOM_FUNCTIONAL,
 } from "./constants";
-import {invariant} from "./invariant";
 import update from "./update";
 import lis from "./longest-increasing-subsequence";
 
@@ -32,7 +31,7 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
         const old_child = old_child_index === null ? null : old_children[old_child_index];
         
         if (isFragment(new_child) || isFragment(old_child)) {
-            let next_parent = findFragmentInsertPoint(current_index, old_children);
+            let next_parent = findFragmentInsertPoint(current_index + 1, old_children);
             if (next_parent === null) next_parent = parent_next_node;
 
             const old_fragment_children = isFragment(old_child) ? old_child.children : [old_child];
@@ -61,20 +60,18 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
 }
 
 const findFragmentInsertPoint = (next_index: number, old_children: Array<Vdom | null>): Vdom | null => {
-    next_index++;
-    if (next_index >= old_children.length) {
-        return null;
+    while (next_index < old_children.length) {
+        const candidate = old_children[next_index++];
+
+        if (candidate !== null && candidate._type === VDOM_FRAGMENT) {
+            return findFragmentInsertPoint(0, candidate.children);
+
+        } else if (candidate !== null && candidate.parent !== null) {
+            return candidate;
+        }
     }
 
-    const candidate = old_children[next_index]
-    if (candidate === null || candidate.parent === null) {
-        return findFragmentInsertPoint(next_index, old_children);
-
-    } else if (candidate._type === VDOM_FRAGMENT) {
-        return findFragmentInsertPoint(-1, candidate.children)
-    }
-
-    return candidate;
+    return null;
 }
 
 const isFragment = (vdom: Vdom | null): vdom is VdomFragment => {
@@ -86,24 +83,25 @@ const clearExtraNodes = (old_parent: Vdom, old_children: Array<Vdom | null>, key
         throw new Error("Parent node is null");
     }
 
-    const old_parent_elem = old_parent.elem;
-
     while (unkeyed.index < unkeyed.items.length) {
-        const removed_index = unkeyed.items[unkeyed.index];
-        const removed = old_children[removed_index];
+        const removed = old_children[ unkeyed.items[unkeyed.index] ];
         if (removed !== null) {
             // Fragment chidlren are all cleared in update()
-            removed.elem !== null && removed.parent !== null && old_parent_elem.removeChild(removed.elem);  
-            removed.parent = null;  
+            if (removed.elem !== null && removed.parent !== null) {
+                old_parent.elem.removeChild(removed.elem);  
+            }
             update(removed, null, null);
         }
         ++unkeyed.index;
     }
 
     keyed.forEach(removed_index => {
-        const removed = removed_index === null ? null : old_children[removed_index];
-        if (removed !== null && removed.elem !== null) {
-            removed.elem !== null && removed.parent !== null && old_parent_elem.removeChild(removed.elem);
+        if (removed_index !== null) {
+            const removed = old_children[removed_index];
+            if (removed !== null && removed.elem !== null && removed.parent !== null) {
+                // Null check override because TS can't introspect type narrowing through callbacks
+                old_parent.elem!.removeChild(removed.elem);
+            }
             update(removed, null, null);
         }
     });
@@ -116,7 +114,7 @@ const splitKeyed = (vdoms: Array<Vdom | null>) => {
         const vdom = vdoms[index];
         const key = keyOf(vdom);
         if (key !== null) {
-            invariant(!(key in keyed), "Keys must be unique in a fragment");
+            if (keyed.has(key)) throw new Error("Keys must be unique in a fragment");
             keyed.set(key, index);
         } else {
             unkeyed.items.push(index);
@@ -134,8 +132,6 @@ const findOldVdomIndex = (new_vdom: Vdom | null, keyed: Keyed, unkeyed: Unkeyed)
             const old_vdom = matched_id;
             keyed.set(key, null);
             return old_vdom;
-        } else {
-            return null;
         }
         
     } else if (unkeyed.index < unkeyed.items.length) {
