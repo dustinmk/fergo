@@ -21,7 +21,7 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
 
     const [keyed, unkeyed] = splitKeyed(old_children);
     const old_node_indexes: number[] = [];
-    const matching_vdoms: Array<Vdom | null> = [];
+    const matching_vdoms: Array<number> = [];
 
     let new_index = 0;
     let current_index: number = 0;
@@ -41,8 +41,9 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
 
         } else {
             update(old_child, new_child, bindpoint);
-            matching_vdoms.push(old_child);
-            
+
+            // TODO: Use matching_vdoms with lis() - skip over -1 and nulls
+            matching_vdoms.push(old_child_index === null ? -1 : old_child_index);
             if (new_child !== null && old_child !== null && old_child_index !== null) {
                 old_node_indexes.push(old_child_index);
             }
@@ -144,7 +145,7 @@ const patchElements = (
     root_node: Node,
     old_vdoms: Array<Vdom | null>,
     new_vdoms: Array<Vdom | null>,
-    matching_vdoms: Array<Vdom | null>,
+    matching_vdoms: Array<number>,
     lis_indices: number[],
     end_node: Node | null
 ) => {
@@ -154,12 +155,14 @@ const patchElements = (
     while(new_index < new_vdoms.length) {
         let old_vdom: Vdom | null = old_index < old_vdoms.length ? old_vdoms[old_index] : null;
         const new_vdom = new_vdoms[new_index];
-        const matching_vdom = matching_vdoms[new_index];
+        const matching_index = matching_vdoms[new_index];
+        const matching_vdom = matching_index === -1 ? null : old_vdoms[matching_index];
         const lis_vdom = lis_index < lis_indices.length ? old_vdoms[lis_indices[lis_index]] : null;
         const old_node = old_vdom === null ? null : old_vdom.elem;
         const new_node = new_vdom === null ? null : new_vdom.elem;
         const lis_node = lis_vdom === null ? null : lis_vdom.elem;
 
+        // Skip over null or reused nodes
         if (old_vdom !== null && old_vdom.parent === null) {
             ++old_index;
             continue;
@@ -174,8 +177,11 @@ const patchElements = (
             continue;
         }
 
+        // lis_node is never null
         if (lis_node === old_node && lis_node !== new_node) {
             new_node !== null && root_node.insertBefore(new_node, lis_node === null ? end_node : lis_node);
+
+            // If new_node is reusing an elem from the old vdom, mark it as removed
             if(matching_vdom !== null) matching_vdom.parent = null;
             ++new_index;
 
@@ -184,31 +190,31 @@ const patchElements = (
             ++lis_index;
             ++new_index;
 
-        } else if (lis_node !== old_node && lis_node !== new_node) {
-            // Replace old with new since they are not common
-            if (new_node !== null && old_node !== null) {
-                root_node.replaceChild(new_node, old_node);
-                if(matching_vdom !== null) matching_vdom.parent = null;
-                if(old_vdom !== null) old_vdom.parent = null;
-                ++new_index;
+        } else if (lis_node !== old_node 
+            && lis_node !== new_node
+            && new_node !== null
+            && old_node !== null
+        ) {
+            root_node.replaceChild(new_node, old_node);
 
-                
-            } else {
-                // Special case: replace old_node with null
-                old_node !== null
-                    && old_vdom !== null
-                    && old_vdom.parent !== null
-                    && root_node.removeChild(old_node);
-                if(old_vdom !== null) old_vdom.parent = null;
-            }
+            // If new_node is reusing an elem from the old vdom, mark it as removed
+            if(matching_vdom !== null) matching_vdom.parent = null;
+
+            // Mark the replaced node as removed
+            if(old_vdom !== null) old_vdom.parent = null;
+            ++new_index;
             ++old_index;
-
-        } else if (lis_node !== old_node && lis_node === new_node) {
+            
+        } else if (lis_node !== old_node
+            && (lis_node === new_node || new_node === null || old_node === null)
+        ) {
             // Do not remove elems that have already been used elsewhere
             old_node !== null 
                 && old_vdom !== null
                 && old_vdom.parent !== null
                 && root_node.removeChild(old_node);
+
+            // Mark the replaced node as removed
             if(old_vdom !== null) old_vdom.parent = null;
             ++old_index;
         }

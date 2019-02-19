@@ -118,39 +118,37 @@ export function v<PropType, StateType>(
 ): Vdom {
 
     // Shortcut if a functional component
-    // TODO: Make monomorphic
     if(typeof selector === "function") {
+        const attr = isFunctionalAttributes(arg1)
+            ? arg1
+            : {} as VdomFunctionalAttributes<PropType, StateType>;
         let vdom = {
             _type: VDOM_FUNCTIONAL,
             parent: null,
             elem: null,
             generator: selector,
             instance: null,
-            state: null,
-            props: null,
-            children: []
-        };
-        const bindpoint = {bindpoint: {
-            binding: (vdom as unknown) as VdomFunctional<PropType, StateType>
-        }};
-
-        if (isUserSupplied(arg1)) {
-            const children = arg2 === undefined
-                ? arg1.children === undefined
+            state: attr.state === undefined ? null : attr.state,
+            props: attr.props === undefined ? null : attr.props,
+            children: arg2 === undefined
+                ? attr.children === undefined
                     ? []
-                    : arg1.children
+                    : attr.children
                 : Array.isArray(arg2)
                     ? arg2
-                    : [arg2];
+                    : [arg2],
+            bindpoint: undefined as BindPoint | undefined,
+            key: attr.key === undefined ? null : attr.key,
+            shouldUpdate: attr.shouldUpdate,
+            oninit: attr.oninit,
+            onremove: attr.onremove
+        };
 
-            return Object.assign(
-                vdom,
-                arg1,
-                bindpoint,
-                children
-            );
-        }
-        return Object.assign(vdom, bindpoint) as VdomFunctional<any, any>;
+        vdom.bindpoint = {
+            binding: (vdom as unknown) as VdomFunctional<PropType, StateType>
+        };
+
+        return vdom as VdomFunctional<PropType, StateType>;
     }
 
     // Standardize arguments for v_impl()
@@ -180,14 +178,13 @@ export function v<PropType, StateType>(
     return v_impl(selector, attributes, children);
 }
 
-function isUserSupplied<PropType, StateType>(
+function isFunctionalAttributes<PropType, StateType>(
     arg?: CustomAttr & Attributes | Child[] | Child | VdomFunctionalAttributes<PropType, StateType>
 ): arg is VdomFunctionalAttributes<PropType, StateType> {
     return arg !== undefined
         && typeof arg === "object"
         && !Array.isArray(arg)
         && arg !== null
-        && ("key" in arg || "props" in arg || "state" in arg)
 }
 
 function v_impl(selector: string, attributes: CustomAttr & Attributes, children: Child[]): Vdom {
