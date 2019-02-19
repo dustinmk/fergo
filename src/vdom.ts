@@ -15,7 +15,7 @@ interface VdomBase {
     elem: Node | null;
 }
 
-export interface VdomFunctional<PropType, StateType>
+export interface VdomFunctional<PropType, StateType = {}>
     extends VdomBase, ComponentAttributes<PropType, StateType>
 {
     _type: T_VDOM_FUNCTIONAL;
@@ -36,11 +36,11 @@ export interface ComponentAttributes<PropType = {}, StateType = {}> {
     _type?: T_VDOM_FUNCTIONAL;
     props: PropType;
     state: StateType;
-    children: Vdom[];
-    key?: string | number;
+    children: Array<Vdom | null>;
+    key?: any;
     shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
-    oninit?: (vdom: ComponentAttributes<PropType, StateType>) => void;
-    onremove?: (vdom: ComponentAttributes<PropType, StateType>) => void;
+    oninit?: (vdom: VdomFunctional<PropType, StateType>) => void;
+    onremove?: (vdom: VdomFunctional<PropType, StateType>) => void;
 }
 
 export type VdomFunctionalAttributes<PropType, StateType>
@@ -53,9 +53,10 @@ export interface BindPoint {
 export interface VdomNode extends VdomBase {
     _type: T_VDOM_NODE;
     tag: string;
+    key: any;
     attributes: CustomAttr & Attributes;
     classes: ClassList;
-    children: Vdom[];
+    children: Array<Vdom | null>;
 }
 
 export interface ClassList {
@@ -68,7 +69,7 @@ export interface Style {
 
 export interface VdomFragment extends VdomBase {
     _type: T_VDOM_FRAGMENT;
-    children: Vdom[];
+    children: Array<Vdom | null>;
 }
 
 export interface VdomText extends VdomBase {
@@ -76,11 +77,11 @@ export interface VdomText extends VdomBase {
     text: string;
 }
 
-export type Vdom = VdomNode | VdomFragment | VdomFunctional<any, any> | VdomText | null;
+export type Vdom = VdomNode | VdomFragment | VdomFunctional<any, any> | VdomText;
 
 export interface Attributes {
     _type?: undefined;
-    key?: string | number;
+    key?: any;
     style?: Style;
     [index: string]: any;
     oninit?: (vdom: Vdom, elem: Node) => void;
@@ -92,7 +93,7 @@ interface CustomAttr {
 }
 
 export type VdomGenerator<PropType, StateType>
-    = (vdom: ComponentAttributes<PropType, StateType>) => Vdom;
+    = (vdom: VdomFunctional<PropType, StateType>) => Vdom;
 
 type ChildBase = Vdom | VdomGenerator<any, any> | string | null | boolean;
 interface ChildArray {
@@ -197,6 +198,7 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
         _type: VDOM_NODE,
         parent: null,
         tag: tag,
+        key: attributes.key === undefined ? null : attributes.key,
         classes: classes,
         attributes: id === undefined ? attributes : {...attributes, id},
         children: [],
@@ -287,7 +289,7 @@ const childToVdom = (child: Child, parent: Vdom) => {
     }
 }
 
-const copyVdom = (vdom: Vdom, parent: Vdom) => {
+const copyVdom = (vdom: Vdom | null, parent: Vdom) => {
     if (vdom === null) {
         return null;
     }

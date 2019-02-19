@@ -32,7 +32,9 @@ export default () => {
 
     // Todo Element View
     const Todo = (todo: Todo) => {
-        return v(`li.${todo.done ? "todo_done" : "todo_not-done"}`, [
+        return v(`li.${todo.done ? "todo_done" : "todo_not-done"}`, {
+            key: todo
+        }, [
             v("p", {
                 style: {display: "inline"},
                 onclick: () => todo.done = !todo.done

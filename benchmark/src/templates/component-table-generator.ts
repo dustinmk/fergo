@@ -1,7 +1,7 @@
-import {v, ComponentAttributes} from "minim";
+import {v, VdomFunctional} from "minim";
 import {Row} from "./big-table-row";
 
-const RowComponent = (vdom: ComponentAttributes<{row: Row}, {}>) => {
+const RowComponent = (vdom: VdomFunctional<{row: Row}, {}>) => {
     const row = vdom.props.row;
 
     return v("tr", [

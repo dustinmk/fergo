@@ -1,7 +1,7 @@
 import chai, {expect} from "chai";
 import jsdom from "mocha-jsdom";
 import * as sinon from "sinon";
-import {v, mount, redraw, redrawSync, selectRedraw, ComponentAttributes} from "src/index";
+import {v, mount, redraw, redrawSync, selectRedraw, VdomFunctional} from "src/index";
 import chaiDOM from "chai-dom";
 import {getRootElement, mountAndMatch, redrawAndMatch} from "./test_common";
 
@@ -137,7 +137,7 @@ describe("Components", () => {
         let change_child = "change inner first";
         let change_outer = "change outer first";
 
-        const child = (vdom: ComponentAttributes<PropType>) => v("div", [
+        const child = (vdom: VdomFunctional<PropType>) => v("div", [
             v("p", vdom.props.text),
             v("p", change_child)
         ]);
@@ -161,7 +161,7 @@ describe("Components", () => {
 
         let props = {text: "first"};
 
-        const child = (props: PropType) => v((vdom: ComponentAttributes<PropType>) => v("div", [
+        const child = (props: PropType) => v((vdom: VdomFunctional<PropType>) => v("div", [
             v("p", vdom.props.text),
         ]), {props, shouldUpdate});
 
@@ -185,12 +185,12 @@ describe("Components", () => {
 
         let props = {text: "text"};
         let toggle = false;
-        const child1 = (vdom: ComponentAttributes<PropType>) => v("div", [
+        const child1 = (vdom: VdomFunctional<PropType>) => v("div", [
             v("p", "child1"),
             v("p", vdom.props.text),
         ]);
 
-        const child2 = (vdom: ComponentAttributes<PropType>) => v("div", [
+        const child2 = (vdom: VdomFunctional<PropType>) => v("div", [
             v("p", "child2"),
             v("p", vdom.props.text),
         ]);
@@ -211,7 +211,7 @@ describe("Components", () => {
             count: number;
         }
 
-        const generator = (vdom: ComponentAttributes<{}, StateType>) => {
+        const generator = (vdom: VdomFunctional<{}, StateType>) => {
             vdom.state.count += 1;
             return v("p", `${vdom.state.count}`)
         }
@@ -232,7 +232,7 @@ describe("Components", () => {
             count: number;
         }
 
-        const generator = (vdom: ComponentAttributes<{}, StateType>) => {
+        const generator = (vdom: VdomFunctional<{}, StateType>) => {
             if (vdom.state === null) {
                 vdom.state = {count: 0}
             }
@@ -267,7 +267,7 @@ describe("Components", () => {
             count: number;
         }
 
-        const generator = (vdom: ComponentAttributes<{}, StateType>) => {
+        const generator = (vdom: VdomFunctional<{}, StateType>) => {
             if (vdom.state === null) {
                 vdom.state = {count: 0}
             } else {
@@ -309,7 +309,7 @@ describe("Components", () => {
     })
 
     it("Passes generator children", () => {
-        const component = (vdom: ComponentAttributes<{}, {}>) => {
+        const component = (vdom: VdomFunctional<{}, {}>) => {
             return v("div", vdom.children);
         };
 

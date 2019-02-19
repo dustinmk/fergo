@@ -1,4 +1,4 @@
-import {redraw, v, ComponentAttributes} from "minim/index";
+import {redraw, v, VdomFunctional} from "minim/index";
 import faker from "faker";
 
 export default () => {
@@ -16,7 +16,7 @@ export default () => {
         ])
     })
 
-    const child_generator = (vdom: ComponentAttributes<{text: string}>) => {
+    const child_generator = (vdom: VdomFunctional<{text: string}>) => {
         return v("li", vdom.props.text)
     }
 

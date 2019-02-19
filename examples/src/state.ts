@@ -1,4 +1,4 @@
-import {ComponentAttributes, v, initializeWith} from "minim/index";
+import {VdomFunctional, v, initializeWith} from "minim/index";
 import faker from "faker";
 
 // Card component
@@ -13,7 +13,7 @@ interface CardState {
 const Card = initializeWith({
         state: () => ({toggle: false})
     },
-    (vdom: ComponentAttributes<CardProps, CardState>) => {
+    (vdom: VdomFunctional<CardProps, CardState>) => {
         return v("div", [
             v("p", {style: {display: "inline"}}, `Card ${vdom.props.name}\ufeff`),
             v("button", {
@@ -29,14 +29,12 @@ const Card = initializeWith({
 const generate_list = () => {
     const list: string[] = [];
     for (let i = 0; i < 10; ++i) {
-        // list.push(`${faker.name.firstName()} ${faker.name.lastName()}`)
-        list.push(`${i}`);
+        list.push(`${faker.name.firstName()} ${faker.name.lastName()}`);
     }
     return list;
 }
 
 let name_list = generate_list();
-
 
 // Root view
 export default () => v(() => v("div", [

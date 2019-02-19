@@ -4,33 +4,25 @@ import {
     VDOM_FRAGMENT,
     VDOM_FUNCTIONAL,
 } from "./constants";
-import {hasOwnProperty} from "./dom";
 import {invariant} from "./invariant";
 import update from "./update";
 import lis from "./longest-increasing-subsequence";
 
-interface Keyed {
-    [index: string]: number | null;
-}
+type Keyed = Map<any, number | null>;
 
 interface Unkeyed {
     index: number;
     items: Array<number>;
 }
 
-export const patchChildren = (old_parent: Vdom, old_children: Vdom[], new_children: Vdom[], parent_next_node: Vdom | null, bindpoint: BindPoint) => {
-    // Recurse, passing the next node when entering a fragment
-    // old_children are in order of DOM on elem
-    // freely set old_child.elem to null to mark reused nodes
-    // call onremove hooks
-
+export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: BindPoint) => {
     if (old_parent === null || old_parent.elem === null) {
         throw new Error("Parent node must not be null");
     }
 
     const [keyed, unkeyed] = splitKeyed(old_children);
     const old_node_indexes: number[] = [];
-    const matching_vdoms: Vdom[] = [];
+    const matching_vdoms: Array<Vdom | null> = [];
 
     let new_index = 0;
     let current_index: number = 0;
@@ -49,15 +41,11 @@ export const patchChildren = (old_parent: Vdom, old_children: Vdom[], new_childr
             patchChildren(old_parent, old_fragment_children, new_fragment_children, next_parent, bindpoint);
 
         } else {
-            // Otherwise, update and patch the element
             update(old_child, new_child, bindpoint);
             matching_vdoms.push(old_child);
             
             if (new_child !== null && old_child !== null && old_child_index !== null) {
                 old_node_indexes.push(old_child_index);
-                
-                // Flag the old vdom as used
-                // if (old_child !== null) old_child.parent = null;
             }
         }
 
@@ -73,7 +61,7 @@ export const patchChildren = (old_parent: Vdom, old_children: Vdom[], new_childr
     return old_parent.elem;
 }
 
-const findFragmentInsertPoint = (next_index: number, old_children: Vdom[]): Vdom | null => {
+const findFragmentInsertPoint = (next_index: number, old_children: Array<Vdom | null>): Vdom | null => {
     next_index++;
     if (next_index >= old_children.length) {
         return null;
@@ -90,61 +78,47 @@ const findFragmentInsertPoint = (next_index: number, old_children: Vdom[]): Vdom
     return candidate;
 }
 
-const isFragment = (vdom: Vdom): vdom is VdomFragment => {
+const isFragment = (vdom: Vdom | null): vdom is VdomFragment => {
     return vdom !== null && vdom._type === VDOM_FRAGMENT;
 }
 
-const clearExtraNodes = (old_parent: Vdom, old_children: Vdom[], keyed: Keyed, unkeyed: Unkeyed) => {
+const clearExtraNodes = (old_parent: Vdom, old_children: Array<Vdom | null>, keyed: Keyed, unkeyed: Unkeyed) => {
     if (old_parent === null || old_parent.elem === null) {
         throw new Error("Parent node is null");
     }
+
+    const old_parent_elem = old_parent.elem;
 
     while (unkeyed.index < unkeyed.items.length) {
         const removed_index = unkeyed.items[unkeyed.index];
         const removed = old_children[removed_index];
         if (removed !== null) {
-            if (removed._type === VDOM_FRAGMENT) {
-                const child_indexes = [];
-                for (let i = 0; i < removed.children.length; ++i) {
-                    child_indexes.push(i);
-                }
-                clearExtraNodes(old_parent, old_children, {}, {index: 0, items: child_indexes})
-            } else {
-                removed.elem !== null && removed.parent !== null && old_parent.elem.removeChild(removed.elem);  
-                removed.parent = null;  
-                update(removed, null, null);
-            }
+            // Fragment chidlren are all cleared in update()
+            removed.elem !== null && removed.parent !== null && old_parent_elem.removeChild(removed.elem);  
+            removed.parent = null;  
+            update(removed, null, null);
         }
         ++unkeyed.index;
     }
 
-    for (const key in keyed) {
-        if (hasOwnProperty(keyed, key)) {
-            const removed_index = keyed[key];
-            const removed = removed_index === null ? null : old_children[removed_index];
-            if (removed !== null && removed._type === VDOM_FRAGMENT && removed.parent !== null) {
-                const child_indexes = [];
-                for (let i = 0; i < removed.children.length; ++i) {
-                    child_indexes.push(i);
-                }
-                clearExtraNodes(old_parent, old_children, {}, {index: 0, items: child_indexes})
-            } else if (removed !== null && removed.elem !== null) {
-                removed.elem !== null && removed.parent !== null && old_parent.elem.removeChild(removed.elem);
-                update(removed, null, null);
-            }
+    keyed.forEach(removed_index => {
+        const removed = removed_index === null ? null : old_children[removed_index];
+        if (removed !== null && removed.elem !== null) {
+            removed.elem !== null && removed.parent !== null && old_parent_elem.removeChild(removed.elem);
+            update(removed, null, null);
         }
-    }
+    });
 }
 
-const splitKeyed = (vdoms: Vdom[]) => {
-    const keyed: Keyed = {};
+const splitKeyed = (vdoms: Array<Vdom | null>) => {
+    const keyed: Keyed = new Map();
     const unkeyed: Unkeyed = {index: 0, items: []};
-    for (let index = 0;index < vdoms.length; ++index) {
+    for (let index = 0; index < vdoms.length; ++index) {
         const vdom = vdoms[index];
         const key = keyOf(vdom);
         if (key !== null) {
             invariant(!(key in keyed), "Keys must be unique in a fragment");
-            keyed[key] = index;
+            keyed.set(key, index);
         } else {
             unkeyed.items.push(index);
         }
@@ -153,12 +127,13 @@ const splitKeyed = (vdoms: Vdom[]) => {
     return [keyed, unkeyed] as [Keyed, Unkeyed]
 }
 
-const findOldVdomIndex = (new_vdom: Vdom, keyed: Keyed, unkeyed: Unkeyed): number | null => {
+const findOldVdomIndex = (new_vdom: Vdom | null, keyed: Keyed, unkeyed: Unkeyed): number | null => {
     const key = keyOf(new_vdom);
     if (key !== null) {
-        if (hasOwnProperty(keyed, key) && keyed[key] !== null) {
-            const old_vdom = keyed[key];
-            keyed[key] = null;
+        const matched_id = keyed.get(key);
+        if (matched_id !== undefined && matched_id !== null) {
+            const old_vdom = matched_id;
+            keyed.set(key, null);
             return old_vdom;
         } else {
             return null;
@@ -170,7 +145,14 @@ const findOldVdomIndex = (new_vdom: Vdom, keyed: Keyed, unkeyed: Unkeyed): numbe
     return null;
 }
 
-const patchElements = (root_node: Node, old_vdoms: Vdom[], new_vdoms: Vdom[], matching_vdoms: Vdom[], lis_indices: number[], end_node: Node | null) => {
+const patchElements = (
+    root_node: Node,
+    old_vdoms: Array<Vdom | null>,
+    new_vdoms: Array<Vdom | null>,
+    matching_vdoms: Array<Vdom | null>,
+    lis_indices: number[],
+    end_node: Node | null
+) => {
     // Consider fragments
     // Old vdoms in same order as DOM children
     // keep all old in lis if elem is same
@@ -184,7 +166,7 @@ const patchElements = (root_node: Node, old_vdoms: Vdom[], new_vdoms: Vdom[], ma
     let lis_index = 0;
     let new_index = 0;
     while(new_index < new_vdoms.length) {
-        let old_vdom: Vdom = old_index < old_vdoms.length ? old_vdoms[old_index] : null;
+        let old_vdom: Vdom | null = old_index < old_vdoms.length ? old_vdoms[old_index] : null;
         const new_vdom = new_vdoms[new_index];
         const matching_vdom = matching_vdoms[new_index];
         const lis_vdom = lis_index < lis_indices.length ? old_vdoms[lis_indices[lis_index]] : null;
@@ -196,18 +178,13 @@ const patchElements = (root_node: Node, old_vdoms: Vdom[], new_vdoms: Vdom[], ma
             ++old_index;
             continue;
         }
-        
-        // Filter out fragments
-        // TODO: Prove this is correct: LIS, OLD, NEW, FRAGMENT, NULL OLD, NULL NEW, NULL LIS
-        if (new_vdom !== null && new_vdom._type === VDOM_FRAGMENT) {
-            ++new_index;
-            ++old_index;
-            continue;
-        }
 
-        if (old_vdom !== null && old_vdom._type === VDOM_FRAGMENT) {
-            ++old_index;
+        // Filter out fragments
+        if ( (new_vdom !== null && new_vdom._type === VDOM_FRAGMENT)
+            || (old_vdom !== null && old_vdom._type === VDOM_FRAGMENT)
+         ) {
             ++new_index;
+            ++old_index;
             continue;
         }
 
@@ -222,38 +199,39 @@ const patchElements = (root_node: Node, old_vdoms: Vdom[], new_vdoms: Vdom[], ma
             ++new_index;
 
         } else if (lis_node !== old_node && lis_node !== new_node) {
+            // Replace old with new since they are not common
             if (new_node !== null && old_node !== null) {
                 root_node.replaceChild(new_node, old_node);
                 if(matching_vdom !== null) matching_vdom.parent = null;
                 if(old_vdom !== null) old_vdom.parent = null;
                 ++new_index;
+
+                
             } else {
-                old_node !== null && root_node.removeChild(old_node);
+                // Special case: replace old_node with null
+                old_node !== null
+                    && old_vdom !== null
+                    && old_vdom.parent !== null
+                    && root_node.removeChild(old_node);
                 if(old_vdom !== null) old_vdom.parent = null;
             }
             ++old_index;
 
         } else if (lis_node !== old_node && lis_node === new_node) {
             // Do not remove elems that have already been used elsewhere
-            old_node !== null && old_vdom !== null && old_vdom.parent !== null && root_node.removeChild(old_node);
+            old_node !== null 
+                && old_vdom !== null
+                && old_vdom.parent !== null
+                && root_node.removeChild(old_node);
             if(old_vdom !== null) old_vdom.parent = null;
             ++old_index;
         }
     }
 }
 
-const keyOf = (vdom: Vdom | null) => {
-    if (vdom === null) {
-        return null;
-    }
-
-    if (vdom._type === VDOM_NODE && vdom.attributes.key !== undefined) {
-        return vdom.attributes.key;
-    }
-
-    if (vdom._type === VDOM_FUNCTIONAL && vdom.key !== undefined) {
-        return vdom.key;
-    }
-
-    return null;
-}
+const keyOf = (vdom: Vdom | null) => 
+    vdom !== null
+        && (vdom._type === VDOM_FUNCTIONAL || vdom._type === VDOM_NODE)
+        && vdom.key !== undefined
+    ? vdom.key
+    : null;

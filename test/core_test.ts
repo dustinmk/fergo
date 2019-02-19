@@ -1,6 +1,6 @@
 import chai, {expect} from "chai";
 import jsdom from "mocha-jsdom";
-import {v, mount, redraw, redrawSync, selectRedraw, ComponentAttributes} from "src/index";
+import {v, mount, redraw, redrawSync, selectRedraw, Vdom} from "src/index";
 import chaiDOM from "chai-dom";
 import {mountAndMatch, redrawAndMatch, getRootElement} from "./test_common";
 
@@ -211,7 +211,7 @@ describe("Core", () => {
 
     it("Redraws from passed in vdom", () => {
         let text = "first";
-        let root: ComponentAttributes | null = null;
+        let root: Vdom | null = null;
 
         mountAndMatch((vdom) => {
             root = vdom;
@@ -239,7 +239,7 @@ describe("Core", () => {
         redrawAndMatch(root, "li", ["2", "4", "1", "5", "3", "6"])
     })
 
-    it.only("Shuffles keyed elements", () => {
+    it("Shuffles keyed elements", () => {
         let children = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => v("li", {key: n}, `${n}`));
         const root = v(() => v("ul", children));
 

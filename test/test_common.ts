@@ -1,9 +1,8 @@
 import chai, {expect} from "chai";
 import * as sinon from "sinon";
-import {v, mount, redraw, Vdom} from "src/index";
+import {v, mount, redraw, Vdom, VdomFunctional} from "src/index";
 import chaiDOM from "chai-dom";
 import beautify from "js-beautify";
-import { ComponentAttributes } from "src/vdom";
 
 chai.use(chaiDOM);
 
@@ -90,7 +89,7 @@ export function testElementCallbacks(when_mounted: string, root_generator: (togg
 
 }
 
-export function mountAndMatch(vdom: Vdom | ((vdom: ComponentAttributes<any, any>) => Vdom), tag: string, result: string[]) {
+export function mountAndMatch(vdom: Vdom | ((vdom: VdomFunctional<any, any>) => Vdom), tag: string, result: string[]) {
     mount(getRootElement(), vdom);
     PRINT_HTML && printDocument();
     expect(document.querySelectorAll(tag))

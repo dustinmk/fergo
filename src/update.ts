@@ -1,4 +1,4 @@
-import {Vdom, VdomNode, VdomText, VdomFunctional, ComponentAttributes, BindPoint, Attributes, ClassList, Style} from "./vdom";
+import {Vdom, VdomNode, VdomText, VdomFunctional, BindPoint, Attributes, ClassList, Style} from "./vdom";
 import {
     VDOM_NODE,
     VDOM_FRAGMENT,
@@ -119,9 +119,6 @@ const updateFunctionalVdom = (
         // Components can store state in the generator
         new_vdom.state = old_vdom.state;
 
-        // TODO: Copy over old hooks if undefined in new_vdom
-        // TODO: Put hooks into its own object
-
         // Don't redraw if passed props are the same
         if (old_vdom.elem !== null
             && new_vdom.props !== undefined
@@ -139,7 +136,7 @@ const updateFunctionalVdom = (
 
     // Destroy old and create new
     } else {
-        old_vdom!== null && old_vdom.elem !== null && updateNullNode(old_vdom);
+        old_vdom !== null && old_vdom.elem !== null && updateNullNode(old_vdom);
         generateInstance(old_vdom, new_vdom);
         new_vdom.oninit !== undefined && new_vdom.oninit(new_vdom);
     }
@@ -168,26 +165,20 @@ const generateInstance = (
         new_vdom.instance = old_vdom.instance;
 
     } else {
-        if (old_vdom !== null && old_vdom._type === VDOM_FUNCTIONAL) {
-            new_vdom.elem = update(
-                old_vdom.instance,
-                generated,
-                new_vdom.bindpoint
-            );
-        } else {
-            new_vdom.elem = update(
-                old_vdom,
-                generated,
-                new_vdom.bindpoint
-            );
-        }
+        new_vdom.elem = update(
+            old_vdom !== null && old_vdom._type === VDOM_FUNCTIONAL
+                ? old_vdom.instance
+                : old_vdom,
+            generated,
+            new_vdom.bindpoint
+        );
         new_vdom.instance = generated;
     }
 }
 
 const shouldUpdate = <PropType>(
-    old_vdom: ComponentAttributes<PropType>,
-    new_vdom: ComponentAttributes<PropType>
+    old_vdom: VdomFunctional<PropType, any>,
+    new_vdom: VdomFunctional<PropType, any>
 ) => {
     if (new_vdom.shouldUpdate !== undefined) {
         return new_vdom.shouldUpdate(old_vdom.props, new_vdom.props, new_vdom.state);
@@ -275,14 +266,14 @@ const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint) => {
 
     createChildren(elem, vdom.children, bindpoint);
     
-    if ("oninit" in vdom.attributes && typeof vdom.attributes["oninit"] === "function") {
-        vdom.attributes["oninit"](vdom, elem);
+    if ("oninit" in vdom.attributes && typeof vdom.attributes.oninit === "function") {
+        vdom.attributes.oninit(vdom, elem);
     }
 
     return elem;
 }
 
-const createChildren = (elem: Node, vdoms: Vdom[], bindpoint: BindPoint) => {
+const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPoint) => {
     for (const child of vdoms) {
         if (child !== null && child._type === VDOM_FRAGMENT) {
             createChildren(elem, child.children, bindpoint);
@@ -316,8 +307,7 @@ const patchStyle = (
     new_style: Style
 ) => {
     Object.keys(new_style).forEach(key => {
-        if (hasOwnProperty(new_style, key)
-            && new_style[key] !== undefined
+        if (new_style[key] !== undefined
             && (!hasOwnProperty(old_style, key) || old_style[key] !== new_style[key])
         ) {
             elem.style.setProperty(key, new_style[key])
@@ -325,7 +315,7 @@ const patchStyle = (
     });
 
     Object.keys(old_style).forEach(key => {
-        if (hasOwnProperty(old_style, key) && !hasOwnProperty(new_style, key)) {
+        if (!hasOwnProperty(new_style, key)) {
             elem.style.setProperty(key, null);
         }
     });
@@ -345,7 +335,7 @@ const makeHandler = () => {
             if (binding.vdom !== null && binding.userHandler !== null) {
                 const returned = binding.userHandler(event, binding.vdom);
                 if (returned instanceof Promise) {
-                    returned.then(() => redraw(binding.vdom));
+                    returned.then(() => binding.vdom !== null && redraw(binding.vdom));
                 } else {
                     redraw(binding.vdom);
                 }
