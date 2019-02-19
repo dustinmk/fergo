@@ -57,7 +57,6 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
     patchElements(old_parent.elem, old_children, new_children, matching_vdoms, lis_new_nodes, parent_next_node === null ? null : parent_next_node.elem);
     clearExtraNodes(old_parent, old_children, keyed, unkeyed);
 
-    // Clear out extras and call remove hooks
     return old_parent.elem;
 }
 
@@ -153,15 +152,6 @@ const patchElements = (
     lis_indices: number[],
     end_node: Node | null
 ) => {
-    // Consider fragments
-    // Old vdoms in same order as DOM children
-    // keep all old in lis if elem is same
-    // Replace when in lis if elem not same
-    // Replace when new and old not in lis
-    // Remove when old not in lis
-    // Insert when new not in lis
-    // When insert at end, insert at start of next fragment
-
     let old_index = 0;
     let lis_index = 0;
     let new_index = 0;

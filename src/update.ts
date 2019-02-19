@@ -15,12 +15,10 @@ const update = (
     new_vdom: Vdom | null,
     bindpoint: BindPoint | null
 ): Node | null => {
-    if (new_vdom === null 
-        || (old_vdom !== null && new_vdom._type !== old_vdom._type)
+    if (old_vdom !== null
+        && (new_vdom === null || new_vdom._type !== old_vdom._type)
     ) {
-        if (old_vdom !== null) {
-            updateNullNode(old_vdom);
-        }
+        updateNullNode(old_vdom);
     } 
     
     if (new_vdom === null) {
@@ -28,22 +26,18 @@ const update = (
 
     } else if (new_vdom._type === VDOM_FUNCTIONAL) {
         new_vdom.elem = updateFunctionalVdom(old_vdom, new_vdom);
-    }
-
-    else if (new_vdom._type === VDOM_TEXT) {
+        
+    } else if (new_vdom._type === VDOM_TEXT) {
         new_vdom.elem = updateTextNode(old_vdom, new_vdom);
-    }
 
-    else if (new_vdom._type === VDOM_FRAGMENT) {
-        throw new Error("Should not be updating a VdomFragmet");
-    }
-
-    else if (new_vdom._type === VDOM_NODE) {
+    } else if (new_vdom._type === VDOM_NODE) {
         if (bindpoint === null) {
             throw new Error("Bindpoint must not be null");
         }
-
         new_vdom.elem = updateNode(old_vdom, new_vdom, bindpoint);
+
+    } else if (new_vdom._type === VDOM_FRAGMENT) {
+        throw new Error("Should not be updating a VdomFragmet");
     }
 
     return new_vdom.elem;
@@ -75,26 +69,23 @@ const updateNullNode = (old_vdom: Vdom | null) => {
 
         updateNullNode(old_vdom.instance);
     }
-
-    // old_vdom.elem = null;
 }
 
 const updateTextNode = (
     old_vdom: Vdom | null,
     new_vdom: VdomText
 ) => {
-    if (old_vdom !== null && old_vdom.elem !== null && old_vdom._type === VDOM_TEXT) {
-        const old_elem = old_vdom.elem;
-        if (new_vdom.text !== old_vdom.text) {
-            if(old_elem !== null) old_elem.nodeValue = new_vdom.text;
-        }
-        new_vdom.elem = old_vdom.elem;
+    if (old_vdom === null || old_vdom.elem === null || old_vdom._type !== VDOM_TEXT) {
+        return document.createTextNode(new_vdom.text);
 
     } else {
-        new_vdom.elem = document.createTextNode(new_vdom.text);
-    }
+        if (new_vdom.text !== old_vdom.text) {
+            // Null check override operator since the TS parser can't figure out that old_vodm.elem is never null here
+            old_vdom.elem!.nodeValue = new_vdom.text;
+        }
 
-    return new_vdom.elem;
+        return old_vdom.elem;
+    }
 }
 
 const updateFunctionalVdom = (
@@ -158,13 +149,10 @@ const generateInstance = (
     }
 
     // Don't update if the same instance is returned as last time
-    if (old_vdom !== null
-        && old_vdom._type === VDOM_FUNCTIONAL
-        && old_vdom.instance === generated
+    if (old_vdom === null
+        || old_vdom._type !== VDOM_FUNCTIONAL
+        || old_vdom.instance !== generated
     ) {
-        new_vdom.instance = old_vdom.instance;
-
-    } else {
         new_vdom.elem = update(
             old_vdom !== null && old_vdom._type === VDOM_FUNCTIONAL
                 ? old_vdom.instance
@@ -172,35 +160,28 @@ const generateInstance = (
             generated,
             new_vdom.bindpoint
         );
-        new_vdom.instance = generated;
     }
+
+    new_vdom.instance = generated;
 }
 
 const shouldUpdate = <PropType>(
-    old_vdom: VdomFunctional<PropType, any>,
-    new_vdom: VdomFunctional<PropType, any>
+    old_vdom: VdomFunctional<PropType & {[index: string]: any}, any>,
+    new_vdom: VdomFunctional<PropType & {[index: string]: any}, any>
 ) => {
     if (new_vdom.shouldUpdate !== undefined) {
         return new_vdom.shouldUpdate(old_vdom.props, new_vdom.props, new_vdom.state);
-    }
-
-    if (typeof old_vdom !== typeof new_vdom) {
+        
+    } else if (typeof old_vdom !== typeof new_vdom) {
         return true;
-    }
 
-    if (new_vdom.props !== null && new_vdom.props.constructor === Object) {
-        for (const key in old_vdom.props) {
-            if (hasOwnProperty(old_vdom.props, key)
-                && old_vdom.props[key] !== new_vdom.props[key]
-            ) {
-                return true;
-            }
-        }
+    } else if (new_vdom.props !== null && new_vdom.props.constructor === Object) {
+        return -1 !== Object.keys(old_vdom.props)
+            .findIndex(key => old_vdom.props[key] !== new_vdom.props[key]);
+
     } else {
         return old_vdom.props !== new_vdom.props;
     }
-
-    return false;
 }
 
 const updateNode = (
@@ -208,25 +189,15 @@ const updateNode = (
     new_vdom: VdomNode,
     bindpoint: BindPoint
 ) => {
-    if (
-        old_vdom === null
-        || old_vdom.elem === null
-        || old_vdom._type === VDOM_TEXT
-        || old_vdom._type === VDOM_FRAGMENT
-        || (old_vdom._type === VDOM_NODE && old_vdom.tag !== new_vdom.tag)
-    ) {
-        if (old_vdom !== null) {
-            updateNullNode(old_vdom);
-        }
-        return createHTMLElement(new_vdom, bindpoint);
-
-    } else if (old_vdom._type === VDOM_FUNCTIONAL) {
+    if (old_vdom !== null && old_vdom._type === VDOM_FUNCTIONAL) {
         return update(old_vdom.instance, new_vdom, bindpoint);
 
-    } else if (old_vdom.elem !== null) {
+    } else if (old_vdom !== null && old_vdom._type === VDOM_NODE && old_vdom.tag === new_vdom.tag) {
         return patchVdomNode(old_vdom, new_vdom, bindpoint);
+
     } else {
-        throw new Error("if statements don't work")
+        updateNullNode(old_vdom);
+        return createHTMLElement(new_vdom, bindpoint);
     }
 }
 
@@ -240,15 +211,14 @@ const patchVdomNode = (
         throw new Error("Elem does not exist");
     }
 
-    if (isElement(old_vdom.elem)) {
-        patchClasses(old_vdom.elem, old_vdom.classes, new_vdom.classes);
-        patchAttributes(old_vdom.elem, old_vdom.attributes, new_vdom.attributes, bindpoint);
-        patchStyle(
-            old_vdom.elem as HTMLElement,
-            old_vdom.attributes.style === undefined ? {} : old_vdom.attributes.style,
-            new_vdom.attributes.style === undefined ? {} : new_vdom.attributes.style
-        );
-    }
+    const old_vdom_elem: HTMLElement = <HTMLElement>old_vdom.elem;
+    patchClasses(old_vdom_elem, old_vdom.classes, new_vdom.classes);
+    patchAttributes(old_vdom_elem, old_vdom.attributes, new_vdom.attributes, bindpoint);
+    patchStyle(
+        old_vdom_elem,
+        old_vdom.attributes.style === undefined ? {} : old_vdom.attributes.style,
+        new_vdom.attributes.style === undefined ? {} : new_vdom.attributes.style
+    );
 
     return patchChildren(old_vdom, old_vdom.children, new_vdom.children, null, bindpoint);
 }
@@ -266,7 +236,7 @@ const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint) => {
 
     createChildren(elem, vdom.children, bindpoint);
     
-    if ("oninit" in vdom.attributes && typeof vdom.attributes.oninit === "function") {
+    if (vdom.attributes.oninit !== undefined) {
         vdom.attributes.oninit(vdom, elem);
     }
 
@@ -289,13 +259,13 @@ const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPo
 
 const patchClasses = (elem: Element, old_classes: ClassList, new_classes: ClassList) => {
     Object.keys(new_classes).forEach(c => {
-        if (! (c in old_classes) ) {
+        if (! hasOwnProperty(old_classes, c) ) {
             elem.classList.add(c);
         }
     })
 
     Object.keys(old_classes).forEach(c => {
-        if (! (c in new_classes) ) {
+        if (! hasOwnProperty(new_classes, c) ) {
             elem.classList.remove(c);
         }
     })
@@ -353,7 +323,7 @@ const patchAttributes = (
     bindpoint: BindPoint
 ) => {
     Object.entries(new_attr).forEach(([key, value]: [string, any]) => {
-        if (!EXCLUDED_ATTR.has(key) && !isReservedAttribute(key) && value !== old_attr[key]) {
+        if (!isReservedAttribute(key) && value !== old_attr[key]) {
             if (key === "value") {
                 (<HTMLInputElement>elem).value = value;
                 
@@ -386,11 +356,11 @@ const patchAttributes = (
     })
 
     Object.entries(old_attr).forEach(([key, value]: [string, any]) => {
-        if (!EXCLUDED_ATTR.has(key) && !(key in new_attr)) {
+        if (!EXCLUDED_ATTR.has(key) && !hasOwnProperty(new_attr, key)) {
 
             // Only remove event handlers at _on{event}_ref since the user-provided
             // on{event} were not directly added as a listener
-            if (typeof value === "function" && key.substr(0, 2) === "on") {
+            if (typeof value === "function" && key.startsWith("on")) {
                 const event_name = eventName(key);
                 const ref_name = `__on${event_name}_ref`;
                 elem.removeEventListener(event_name, old_attr[ref_name].handler);
@@ -407,19 +377,14 @@ const patchAttributes = (
 
 const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "onremove", "style"]);
 const isReservedAttribute = (key: string) => {
-    return EXCLUDED_ATTR.has(key) || key.match(/__on.*_ref/) !== null;
-}
-
-const isElement = (node: Node | null): node is Element => {
-    return node !== null && "classList" in node;
+    return EXCLUDED_ATTR.has(key) || key.startsWith("__on");
 }
 
 const eventName = (key: string) => {
-    const regex_result = key.match(/on([\w]+)/);
-    if(regex_result === null || regex_result.length < 2) {
+    if (!key.startsWith("on") || key.length < 3) {
         throw new Error(`Invalid handler: ${key}`);
     }
-    return regex_result[1];
+    return key.substr(2, key.length - 2);
 }
 
 export default update;
