@@ -233,12 +233,12 @@ const childToVdom = (child: Child, parent: Vdom) => {
             state: null,
             initial_state: null,
             props: null,
-            children: []
+            children: [],
+            bindpoint: undefined as BindPoint | undefined
         };
-        
-        return Object.assign(functional_vdom, {bindpoint: {
-            binding: (functional_vdom as unknown) as VdomFunctional<any, any>
-        }}) as VdomFunctional<any, any>;
+
+        functional_vdom.bindpoint = {binding: functional_vdom as VdomFunctional<null, null>};
+        return functional_vdom as VdomFunctional<null, null>;
 
     } else if (Array.isArray(child)) {
         const vdom: VdomFragment = {

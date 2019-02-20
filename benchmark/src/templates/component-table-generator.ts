@@ -17,5 +17,5 @@ const RowComponent = (vdom: VdomFunctional<{row: Row}, {}>) => {
 }
 
 export default (props: {rows: Row[]}) => v(() => v("table", props.rows.map(row =>
-    v(RowComponent, {props: {row}})
+    v(RowComponent, {props: {row}, key: row})
 )));

@@ -8,8 +8,8 @@ export default (generator: (props: {rows: Row[]}) => Vdom) =>
 {
     selectRedraw(redrawSync);
 
-    const new_rows = generateRows(1000);
-    const original_rows = generateRows(5000);
+    const new_rows = generateRows(100);
+    const original_rows = generateRows(1000);
     const props = {rows: original_rows};
     const root = generator(props);
     mount(root_elem, root);
@@ -26,8 +26,8 @@ export default (generator: (props: {rows: Row[]}) => Vdom) =>
     }
 
     const start_time = performance.now();
-    const min_time = 3 * 1000;
-    const min_iter = 10;
+    const min_time = 10 * 1000;
+    const min_iter = 50;
     let iter = 0;
     await new Promise(resolve => {
         const single_iteration = () => {

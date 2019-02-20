@@ -189,11 +189,7 @@ const patchElements = (
             ++lis_index;
             ++new_index;
 
-        } else if (lis_node !== old_node 
-            && lis_node !== new_node
-            && new_node !== null
-            && old_node !== null
-        ) {
+        } else if (lis_node !== new_node && new_node !== null && old_node !== null) {
             root_node.replaceChild(new_node, old_node);
 
             // If new_node is reusing an elem from the old vdom, mark it as removed
@@ -204,9 +200,7 @@ const patchElements = (
             ++new_index;
             ++old_index;
             
-        } else if (lis_node !== old_node
-            && (lis_node === new_node || new_node === null || old_node === null)
-        ) {
+        } else {
             // Do not remove elems that have already been used elsewhere
             old_node !== null 
                 && old_vdom !== null

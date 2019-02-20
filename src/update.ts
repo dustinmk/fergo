@@ -214,7 +214,24 @@ const patchVdomNode = (
         new_vdom.attributes.style === undefined ? {} : new_vdom.attributes.style
     );
 
-    return patchChildren(old_vdom, old_vdom.children, new_vdom.children, null, bindpoint);
+    if (new_vdom.children.length === 1 && new_vdom.children[0] !== null && new_vdom.children[0]!._type === VDOM_TEXT) {
+
+        // Fastpath for childlist which are a single text node
+        if (old_vdom.children.length !== 1
+            || old_vdom.children[0] === null
+            || old_vdom.children[0]!._type !== VDOM_TEXT
+            || (old_vdom.children[0]! as VdomText).text !== (new_vdom.children[0]! as VdomText).text
+        ) {
+            old_vdom.elem.childNodes.forEach(child => old_vdom.elem!.removeChild(child));
+            old_vdom.elem.textContent = (new_vdom.children[0] as VdomText).text;
+        }
+        
+        return old_vdom.elem;
+
+        // TODO: Fast compare children
+    } else {
+        return patchChildren(old_vdom, old_vdom.children, new_vdom.children, null, bindpoint);
+    }
 }
 
 const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint) => {
@@ -252,17 +269,17 @@ const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPo
 }
 
 const patchClasses = (elem: Element, old_classes: ClassList, new_classes: ClassList) => {
-    Object.keys(new_classes).forEach(c => {
+    for (const c in new_classes) {
         if (! hasOwnProperty(old_classes, c) ) {
             elem.classList.add(c);
         }
-    })
+    }
 
-    Object.keys(old_classes).forEach(c => {
+    for (const c in old_classes) {
         if (! hasOwnProperty(new_classes, c) ) {
             elem.classList.remove(c);
         }
-    })
+    }
 }
 
 const patchStyle = (
@@ -270,19 +287,19 @@ const patchStyle = (
     old_style: Style,
     new_style: Style
 ) => {
-    Object.keys(new_style).forEach(key => {
+    for (const key in new_style) {
         if (new_style[key] !== undefined
             && (!hasOwnProperty(old_style, key) || old_style[key] !== new_style[key])
         ) {
             elem.style.setProperty(key, new_style[key])
         }
-    });
+    }
 
-    Object.keys(old_style).forEach(key => {
+    for (const key in old_style) {
         if (!hasOwnProperty(new_style, key)) {
             elem.style.setProperty(key, null);
         }
-    });
+    }
 }
 
 interface Handler {
@@ -316,7 +333,8 @@ const patchAttributes = (
     new_attr: Attributes,
     bindpoint: BindPoint
 ) => {
-    Object.entries(new_attr).forEach(([key, value]: [string, any]) => {
+    for (const key in new_attr) {
+        const value = new_attr[key];
         if (!isReservedAttribute(key) && value !== old_attr[key]) {
             if (key === "value") {
                 (<HTMLInputElement>elem).value = value;
@@ -347,9 +365,10 @@ const patchAttributes = (
                 elem.setAttribute(key, value);
             }
         }
-    })
+    }
 
-    Object.entries(old_attr).forEach(([key, value]: [string, any]) => {
+    for (const key in old_attr) {
+        const value = old_attr[key];
         if (!EXCLUDED_ATTR.has(key) && !hasOwnProperty(new_attr, key)) {
 
             // Only remove event handlers at _on{event}_ref since the user-provided
@@ -366,7 +385,7 @@ const patchAttributes = (
                 elem.removeAttribute(key);
             }
         }
-    })
+    }
 }
 
 const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "onremove", "style"]);
