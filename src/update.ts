@@ -49,25 +49,19 @@ const updateNullNode = (old_vdom: Vdom | null) => {
         return;
     }
 
+    // Leaf-first order so the leaves still have the parents when called
     if (old_vdom._type === VDOM_NODE || old_vdom._type === VDOM_FRAGMENT) {
-
-        // Leaf-first order so the leaves still have the parents when called
         for (const child of old_vdom.children) {
             if (child !== null) {
                 updateNullNode(child);
             }
         }
+    }
 
-        if (old_vdom._type === VDOM_NODE && old_vdom.attributes.onremove !== undefined) {
-            old_vdom.elem !== null && old_vdom.attributes.onremove(old_vdom, old_vdom.elem);
-        }
-
-    } else if (old_vdom._type === VDOM_FUNCTIONAL) {
-        if (old_vdom.onremove !== undefined) {
-            old_vdom.onremove(old_vdom);
-        }
-
-        updateNullNode(old_vdom.instance);
+    if (old_vdom._type === VDOM_FUNCTIONAL && old_vdom.onremove !== undefined) {
+        old_vdom.onremove(old_vdom);
+    } else if (old_vdom._type === VDOM_NODE && old_vdom.attributes.onremove !== undefined) {
+        old_vdom.attributes.onremove(old_vdom);
     }
 }
 
@@ -237,7 +231,7 @@ const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint) => {
     createChildren(elem, vdom.children, bindpoint);
     
     if (vdom.attributes.oninit !== undefined) {
-        vdom.attributes.oninit(vdom, elem);
+        vdom.attributes.oninit(vdom);
     }
 
     return elem;

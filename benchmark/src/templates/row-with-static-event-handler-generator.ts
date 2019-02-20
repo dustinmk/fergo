@@ -1,7 +1,7 @@
 import {v} from "minim";
 import {Row} from "./big-table-row";
 
-const onclick = () => {};
+const onclick = () => {alert("name")};
 
 export default (props: {rows: Row[]}) => v(() => v("table", props.rows.map(row => {
     return v("tr", {

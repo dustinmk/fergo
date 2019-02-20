@@ -84,8 +84,8 @@ export interface Attributes {
     key?: any;
     style?: Style;
     [index: string]: any;
-    oninit?: (vdom: Vdom, elem: Node) => void;
-    onremove?: (vdom: Vdom, elem: Node) => void;
+    oninit?: (vdom: VdomNode) => void;
+    onremove?: (vdom: VdomNode) => void;
 }
 
 interface CustomAttr {

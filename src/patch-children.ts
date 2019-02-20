@@ -42,7 +42,6 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
         } else {
             update(old_child, new_child, bindpoint);
 
-            // TODO: Use matching_vdoms with lis() - skip over -1 and nulls
             matching_vdoms.push(old_child_index === null ? -1 : old_child_index);
             if (new_child !== null && old_child !== null && old_child_index !== null) {
                 old_node_indexes.push(old_child_index);

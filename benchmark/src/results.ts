@@ -7,6 +7,7 @@ import {BenchmarkSet} from "./benchmark-data";
 // poll /results just in case
 // fetch /results on load
 
+// TODO: Toggle benchmarks on or off: in left column
 const generateDocument = () => {
     const benchmark_names = new Set();
     state.benchmark_sets
@@ -35,7 +36,7 @@ const generateDocument = () => {
                 state.benchmark_sets.map(set =>
                     v("th", [
                         v("button", {
-                            onclick: () => deleteResult(set.name)
+                            onclick: async () => await deleteResult(set.name)
                         }, "X"),
                         v("br"),
                         set.name
@@ -67,12 +68,32 @@ const fetchResults = async () => {
     state.benchmark_sets = await fetch("http://localhost:8080/results").then(res => res.json());
 }
 
+const TIMEOUT = 5 * 60 * 1000;  // 5 minute timeout
 const runAndUpdateResults = async () => {
     const name = state.next_name;
     state.next_name = "";
     state.running = true;
     redraw(root_vdom);
-    state.benchmark_sets = await fetch(`http://localhost:8080/run?name=${name}`).then(res => res.json());
+
+    const starting_result_count = state.benchmark_sets.length;
+    const start_time = Date.now();
+    fetch(`http://localhost:8080/run?name=${name}`);
+
+    state.benchmark_sets = await new Promise<BenchmarkSet[]>((resolve, reject) => {
+        const interval = setInterval(async () => {
+            const results: BenchmarkSet[] = await fetch("http://localhost:8080/results").then(res => res.json());
+
+            if (results.length > starting_result_count) {
+                clearInterval(interval);
+                resolve(results);
+                
+            } else if (Date.now() - start_time > TIMEOUT) {
+                clearInterval(interval);
+                reject();
+            }
+        }, 2000)
+    });
+
     state.running = false;
 }
 
@@ -86,7 +107,7 @@ const state = {
     next_name: ""
 }
 
-const root_vdom = v(() => generateDocument());
+const root_vdom = v(generateDocument);
 
 const root_elem = document.getElementById("root");
 if (root_elem !== null) {

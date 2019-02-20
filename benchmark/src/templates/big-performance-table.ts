@@ -15,9 +15,7 @@ export default (generator: (props: {rows: Row[]}) => Vdom) =>
     mount(root_elem, root);
 
     const call_setup = () => {
-        props.rows = original_rows;
-        redraw(root);
-        props.rows = mutate_rows(props.rows, new_rows)
+        props.rows = mutate_rows([...original_rows], [...new_rows])
     }
 
     const call_teardown = () => {

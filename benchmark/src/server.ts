@@ -16,10 +16,11 @@ const template_file = path.resolve(__dirname, "./index.html.mustache");
 app.use(express.static(__dirname));
 
 // Spin up server
-// Go to /results
+// Go to /
 // Click on run()
 // Webdriver opens a tab, runs the benchmark, then get the result
 // Responds with JSON data that the page updates with
+// No polling right now, so you might have to refresh after the run is done
 
 const loadResults = (): Promise<BenchmarkSet[]> => {
     return new Promise(resolve => fs.exists(cache_file, does_exist => {

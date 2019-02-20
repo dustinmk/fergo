@@ -3,7 +3,7 @@ import {Row} from "./big-table-row";
 
 export default (props: {rows: Row[]}) => v(() => v("table", props.rows.map(row => {
     return v("tr", {
-        onclick: () => {},
+        onclick: () => {alert("name")},
     }, [
         v("td", row.name),
         v("td", row.street),
