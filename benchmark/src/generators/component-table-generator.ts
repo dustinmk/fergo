@@ -1,5 +1,5 @@
 import {v, VdomFunctional} from "minim";
-import {Row} from "./big-table-row";
+import {Row} from "../templates/big-table-row";
 
 const RowComponent = (vdom: VdomFunctional<{row: Row}, {}>) => {
     const row = vdom.props.row;

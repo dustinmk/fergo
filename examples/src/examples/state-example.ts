@@ -15,11 +15,11 @@ const Card = initializeWith({
     },
     (vdom: VdomFunctional<CardProps, CardState>) => {
         return v("div", [
-            v("p", {style: {display: "inline"}}, `Card ${vdom.props.name}\ufeff`),
+            v("p", {style: {display: "inline"}}, `Card ${vdom.props.name}\u00a0`),
             v("button", {
                 onclick: () => vdom.state.toggle = !vdom.state.toggle
             }, "Toggle"),
-            vdom.state.toggle && v("p", {style: {display: "inline"}}, "\ufeffenabled\ufeff")
+            vdom.state.toggle && v("p", {style: {display: "inline"}}, "\u00a0enabled\u00a0")
         ]);
     }
 );

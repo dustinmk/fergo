@@ -1,8 +1,10 @@
 import {v} from "minim";
-import {Row} from "./big-table-row";
+import {Row} from "../templates/big-table-row";
 
 export default (props: {rows: Row[]}) => v(() => v("table", props.rows.map(row => {
-    return v("tr", {key: row}, [
+    return v("tr", {
+        onclick: () => {alert("name")},
+    }, [
         v("td", row.name),
         v("td", row.street),
         v("td", row.city),

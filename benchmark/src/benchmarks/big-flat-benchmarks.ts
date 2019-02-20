@@ -1,10 +1,10 @@
 //import bigTable from "./big-benchmarkjs-table";
 import bigTable from "../templates/big-performance-table";
 import {Benchmark} from "../benchmark-data";
-import flatTableGenerator from "../templates/flat-table-generator";
-import componentTableGenerator from "../templates/component-table-generator";
-import rowWithEventHandlerGenerator from "../templates/row-with-event-handler-generator";
-import rowWithStaticEventHandlerGenerator from "../templates/row-with-static-event-handler-generator";
+import flatTableGenerator from "../generators/flat-table-generator";
+import componentTableGenerator from "../generators/component-table-generator";
+import rowWithEventHandlerGenerator from "../generators/row-with-event-handler-generator";
+import rowWithStaticEventHandlerGenerator from "../generators/row-with-static-event-handler-generator";
 
 const bigFlatTable = bigTable(flatTableGenerator);
 const bigComponentTable = bigTable(componentTableGenerator);
