@@ -43,7 +43,7 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
             update(old_child, new_child, bindpoint, init_queue);
 
             matching_vdoms.push(old_child_index === null ? -1 : old_child_index);
-            if (new_child !== null && old_child !== null && old_child_index !== null) {
+            if (new_child !== null && old_child !== null && old_child_index !== null && old_child.elem === new_child.elem) {
                 old_node_indexes.push(old_child_index);
             }
         }

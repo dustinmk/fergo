@@ -294,6 +294,25 @@ describe("Core", () => {
         redrawAndMatch(root, "p", ["1", "2", "3"])
     })
 
-    
+    it("Mixes text and elems", () => {
+        let toggle = false;
+        const root = v(() => v("p", 
+            !toggle
+                ? [
+                    "1",
+                    v("strong", "2"),
+                    "3",
+                    v("a", {href: "#"}, "4")
+                ]
+                : [
+                    v("strong", "5"),
+                    "6",
+                    "7"
+                ]));
+
+        mountAndMatch(root, "p", ["1234"]);
+        toggle = true;
+        redrawAndMatch(root, "p", ["567"])
+    })
 });
 

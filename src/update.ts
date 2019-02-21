@@ -232,6 +232,7 @@ const patchVdomNode = (
             old_vdom.elem.textContent = (new_vdom.children[0] as VdomText).text;
         }
         
+        new_vdom.children[0]!.elem = old_vdom.elem.firstChild;
         return old_vdom.elem;
 
         // TODO: Fast compare children
