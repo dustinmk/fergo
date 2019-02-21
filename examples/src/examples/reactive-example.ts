@@ -1,4 +1,4 @@
-import {v, redraw} from "minim/index";
+import {v, redraw, VdomFunctional} from "minim/index";
 import flyd from "flyd";
 
 export default () => {
@@ -23,7 +23,9 @@ export default () => {
         ]), view_data);
 
     // Duplicate redraws are suppressed by redrawAsync
-    const root = v(() => view(), {});
-    flyd.on(() => redraw(root), view)
-    return root;
+    // Can abstract this to make a stream to component conversion function
+    return v((_: VdomFunctional<{}, {on: flyd.Stream<void>}>) => view(), {
+        oninit: (vdom) => vdom.state = {on: flyd.on(() => redraw(vdom), view)},
+        onremove: (vdom) => vdom.state.on.end(true)
+    });
 }

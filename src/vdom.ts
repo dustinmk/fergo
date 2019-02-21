@@ -57,6 +57,7 @@ export interface VdomNode extends VdomBase {
     attributes: CustomAttr & Attributes;
     classes: ClassList;
     children: Array<Vdom | null>;
+    namespace: string | null;
 }
 
 export interface ClassList {
@@ -83,6 +84,7 @@ export interface Attributes {
     _type?: undefined;
     key?: any;
     style?: Style;
+    namespace?: string;
     [index: string]: any;
     oninit?: (vdom: VdomNode) => void;
     onremove?: (vdom: VdomNode) => void;
@@ -199,7 +201,8 @@ function v_impl(selector: string, attributes: CustomAttr & Attributes, children:
         classes: classes,
         attributes: id === undefined ? attributes : {...attributes, id},
         children: [],
-        elem: null
+        elem: null,
+        namespace: attributes.namespace === undefined ? null : attributes.namespace
     };
 
     // Add the children in

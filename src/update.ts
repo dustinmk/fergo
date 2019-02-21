@@ -246,10 +246,12 @@ const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint, init_queue: Vdo
         throw new Error("Invalid tag");
     }
 
-    const elem = document.createElement(vdom.tag);
+    const elem = vdom.namespace === null
+        ? document.createElement(vdom.tag)
+        : document.createElementNS(vdom.namespace, vdom.tag);
 
     patchClasses(elem, {}, vdom.classes);
-    vdom.attributes.style !== undefined && patchStyle(elem, {}, vdom.attributes.style);
+    vdom.attributes.style !== undefined && vdom.namespace === null && patchStyle(<HTMLElement>elem, {}, vdom.attributes.style);
     patchAttributes(elem, {}, vdom.attributes, bindpoint);
 
     createChildren(elem, vdom.children, bindpoint, init_queue);
@@ -421,7 +423,7 @@ const patchAttributes = (
     }
 }
 
-const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "onremove", "style"]);
+const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "onremove", "style", "namespace"]);
 const isReservedAttribute = (key: string) => {
     return EXCLUDED_ATTR.has(key) || key.startsWith("__on");
 }

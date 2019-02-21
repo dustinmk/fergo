@@ -5,13 +5,15 @@ import pubsub from "./examples/pubsub-example";
 import state from "./examples/state-example";
 import reactive from "./examples/reactive-example";
 import hoc from "./examples/hoc-example";
+import svg from "./examples/svg-example";
 
 const examples: {[index: string]: () => Vdom } =  {
     "Todo": todo,
     "PubSub": pubsub,
     "State": state,
     "Reactive": reactive,
-    "HOC": hoc
+    "HOC": hoc,
+    "SVG": svg
 };
 
 const root = document.getElementById("root");
