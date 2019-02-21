@@ -1,4 +1,4 @@
-import {v, Vdom, VdomGenerator} from "./vdom";
+import {v, Vdom, VdomGenerator, VdomNode} from "./vdom";
 import {VDOM_FUNCTIONAL} from "./constants";
 import update from "./update";
 
@@ -12,12 +12,15 @@ export const mount = (elem: HTMLElement, vdom: Vdom | VdomGenerator<any, any>)  
     }
 
     else {
-        vdom.elem = update(null, vdom, vdom.bindpoint);
+        const init_queue: VdomNode[] = [];
+        vdom.elem = update(null, vdom, vdom.bindpoint, init_queue);
         
         if (vdom.elem === null) {
             throw new Error("Vdom element could not be created");
         }
     
         elem.appendChild(vdom.elem);
+
+        init_queue.forEach(v => v.attributes.oninit !== undefined && v.attributes.oninit(v));
     }
 }

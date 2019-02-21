@@ -27,6 +27,7 @@ export abstract class Component<PropType extends object = {}> {
         // Create the generator once so that it compares with itself equally when checking
         // if the instance should get new props or be replaced
         const generator = (vdom: ComponentAttributes<PropType, ComponentType>) => {
+            if (vdom.state === undefined) throw new Error("State must be initialized");
             vdom.state.props = vdom.props;
             vdom.state.component = vdom as Vdom;
             return vdom.state.view()
@@ -49,13 +50,13 @@ export abstract class Component<PropType extends object = {}> {
                     },
 
                 onMount: (vdom: ComponentAttributes<PropType, ComponentType>) => {
-                    if (vdom.state.onMount !== undefined) {
+                    if (vdom.state !== undefined && vdom.state.onMount !== undefined) {
                         vdom.state.onMount();
                     }
                 },
 
                 onUnmount: (vdom: ComponentAttributes<PropType, ComponentType>) => {
-                    if (vdom.state.onUnmount !== undefined) {
+                    if (vdom.state !== undefined && vdom.state.onUnmount !== undefined) {
                         vdom.state.onUnmount();
                     }
                 },

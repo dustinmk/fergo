@@ -30,6 +30,7 @@
     "deepmerge": "^3.1.0",
     "faker": "^4.1.0",
     "file-loader": "^3.0.1",
+    "flyd": "^0.2.8",
     "js-beautify": "^1.8.9",
     "jsdom": "^13.0.0",
     "lodash": "^4.17.11",

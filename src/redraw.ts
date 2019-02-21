@@ -1,4 +1,4 @@
-import {Vdom} from "./vdom";
+import {Vdom, VdomNode} from "./vdom";
 import update from "./update";
 import {VDOM_FUNCTIONAL} from "./constants";
 
@@ -50,8 +50,9 @@ export const redrawSync = (vdom: Vdom) => {
 
         // Force an update, ignoring if the same instance is returned
         // Only do this at the top level of a redraw cycle
+        const init_queue: VdomNode[] = [];
         const generated = vdom.generator(vdom);
-        vdom.elem = update(vdom.instance, generated, vdom.bindpoint);
+        vdom.elem = update(vdom.instance, generated, vdom.bindpoint, init_queue);
         vdom.instance = generated;
         if (generated !== null) {
             generated.parent = vdom;
@@ -70,6 +71,8 @@ export const redrawSync = (vdom: Vdom) => {
         ) {
             old_elem.parentNode.replaceChild(vdom.elem, old_elem);
         }
+
+        init_queue.forEach(v => v.attributes.oninit !== undefined && v.attributes.oninit(v));
     }
 }
 

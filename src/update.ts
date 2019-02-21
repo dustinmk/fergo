@@ -13,7 +13,8 @@ import {patchChildren} from "./patch-children";
 const update = (
     old_vdom: Vdom | null,
     new_vdom: Vdom | null,
-    bindpoint: BindPoint | null
+    bindpoint: BindPoint | null,
+    init_queue: Array<VdomNode>
 ): Node | null => {
     if (old_vdom !== null
         && (new_vdom === null || new_vdom._type !== old_vdom._type)
@@ -25,7 +26,7 @@ const update = (
         return null;
 
     } else if (new_vdom._type === VDOM_FUNCTIONAL) {
-        new_vdom.elem = updateFunctionalVdom(old_vdom, new_vdom);
+        new_vdom.elem = updateFunctionalVdom(old_vdom, new_vdom, init_queue);
         
     } else if (new_vdom._type === VDOM_TEXT) {
         new_vdom.elem = updateTextNode(old_vdom, new_vdom);
@@ -34,7 +35,7 @@ const update = (
         if (bindpoint === null) {
             throw new Error("Bindpoint must not be null");
         }
-        new_vdom.elem = updateNode(old_vdom, new_vdom, bindpoint);
+        new_vdom.elem = updateNode(old_vdom, new_vdom, bindpoint, init_queue);
 
     } else if (new_vdom._type === VDOM_FRAGMENT) {
         throw new Error("Should not be updating a VdomFragmet");
@@ -84,7 +85,8 @@ const updateTextNode = (
 
 const updateFunctionalVdom = (
     old_vdom: Vdom | null,
-    new_vdom: VdomFunctional<any, any>
+    new_vdom: VdomFunctional<any, any>,
+    init_queue: VdomNode[]
 ): Node => {
 
     // Share bindpoint as long as possible across all instances of this vdom
@@ -116,13 +118,13 @@ const updateFunctionalVdom = (
 
         // Otherwise, redraw
         } else {
-            generateInstance(old_vdom, new_vdom);
+            generateInstance(old_vdom, new_vdom, init_queue);
         }
 
     // Destroy old and create new
     } else {
         old_vdom !== null && old_vdom.elem !== null && updateNullNode(old_vdom);
-        generateInstance(old_vdom, new_vdom);
+        generateInstance(old_vdom, new_vdom, init_queue);
         new_vdom.oninit !== undefined && new_vdom.oninit(new_vdom);
     }
 
@@ -135,7 +137,8 @@ const updateFunctionalVdom = (
 
 const generateInstance = (
     old_vdom: Vdom | null,
-    new_vdom: VdomFunctional<any, any>
+    new_vdom: VdomFunctional<any, any>,
+    init_queue: VdomNode[]
 ) => {
     const generated = new_vdom.generator(new_vdom);
     if (generated !== null) {
@@ -152,7 +155,8 @@ const generateInstance = (
                 ? old_vdom.instance
                 : old_vdom,
             generated,
-            new_vdom.bindpoint
+            new_vdom.bindpoint,
+            init_queue
         );
     }
 
@@ -181,24 +185,26 @@ const shouldUpdate = <PropType>(
 const updateNode = (
     old_vdom: Vdom | null,
     new_vdom: VdomNode,
-    bindpoint: BindPoint
+    bindpoint: BindPoint,
+    init_queue: VdomNode[]
 ) => {
     if (old_vdom !== null && old_vdom._type === VDOM_FUNCTIONAL) {
-        return update(old_vdom.instance, new_vdom, bindpoint);
+        return update(old_vdom.instance, new_vdom, bindpoint, init_queue);
 
     } else if (old_vdom !== null && old_vdom._type === VDOM_NODE && old_vdom.tag === new_vdom.tag) {
-        return patchVdomNode(old_vdom, new_vdom, bindpoint);
+        return patchVdomNode(old_vdom, new_vdom, bindpoint, init_queue);
 
     } else {
         updateNullNode(old_vdom);
-        return createHTMLElement(new_vdom, bindpoint);
+        return createHTMLElement(new_vdom, bindpoint, init_queue);
     }
 }
 
 const patchVdomNode = (
     old_vdom: VdomNode,
     new_vdom: VdomNode,
-    bindpoint: BindPoint
+    bindpoint: BindPoint,
+    init_queue: VdomNode[]
 ) => {
 
     if (old_vdom.elem === null) {
@@ -230,11 +236,11 @@ const patchVdomNode = (
 
         // TODO: Fast compare children
     } else {
-        return patchChildren(old_vdom, old_vdom.children, new_vdom.children, null, bindpoint);
+        return patchChildren(old_vdom, old_vdom.children, new_vdom.children, null, bindpoint, init_queue);
     }
 }
 
-const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint) => {
+const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint, init_queue: VdomNode[]) => {
     if (vdom.tag === "") {
         throw new Error("Invalid tag");
     }
@@ -245,22 +251,23 @@ const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint) => {
     vdom.attributes.style !== undefined && patchStyle(elem, {}, vdom.attributes.style);
     patchAttributes(elem, {}, vdom.attributes, bindpoint);
 
-    createChildren(elem, vdom.children, bindpoint);
+    createChildren(elem, vdom.children, bindpoint, init_queue);
     
+    vdom.elem = elem;
     if (vdom.attributes.oninit !== undefined) {
-        vdom.attributes.oninit(vdom);
+        init_queue.push(vdom);
     }
 
     return elem;
 }
 
-const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPoint) => {
+const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPoint, init_queue: VdomNode[]) => {
     for (const child of vdoms) {
         if (child !== null && child._type === VDOM_FRAGMENT) {
-            createChildren(elem, child.children, bindpoint);
+            createChildren(elem, child.children, bindpoint, init_queue);
 
         } else {
-            const child_elem = update(null, child, bindpoint)
+            const child_elem = update(null, child, bindpoint, init_queue)
             if (child_elem !== null) {
                 elem.appendChild(child_elem);
             }
@@ -304,7 +311,7 @@ const patchStyle = (
 
 interface Handler {
     vdom: Vdom | null,
-    userHandler: ((event: Event, vdom: Vdom) => void | Promise<void>) | null,
+    userHandler: ((event: Event, vdom: Vdom) => void | Promise<void> | boolean) | null,
     handler: EventHandlerNonNull;
 }
 
@@ -320,6 +327,7 @@ const makeHandler = () => {
                 } else {
                     redraw(binding.vdom);
                 }
+                return returned;
             }
         }
     };
@@ -339,7 +347,12 @@ const patchAttributes = (
             if (key === "value") {
                 (<HTMLInputElement>elem).value = value;
                 
-            } else if (typeof value === "function") {
+                // Support useCapture by {onclick: [() => {}, true]}
+            } else if (typeof value === "function"
+                || (Array.isArray(value)
+                    && value.length > 0
+                    && typeof value[0] === "function")
+            ) {
 
                 // Inject the user-provided handler to a static event handler
                 // through the closure. Update the bound object in the event handler
@@ -350,11 +363,30 @@ const patchAttributes = (
                 let handler;
                 if (old_attr[ref_name] === undefined) {
                     handler = makeHandler();
-                    elem.addEventListener(event, handler.handler);
+                    elem.addEventListener(
+                        event,
+                        handler.handler,
+                        Array.isArray(value) 
+                            ? value.length > 1 ? value[1] : false
+                            : false
+                    )
                 } else {
                     handler = old_attr[ref_name];
                 }
-                handler.userHandler = value;
+
+                if (Array.isArray(value)) {
+                    handler.userHandler = value[0];
+                    const old_useCapture = Array.isArray(old_attr[key]) 
+                        ? value.length > 1 ? value[1] : false
+                        : false
+                    const new_useCapture = value.length > 1 ? value[1] : false;
+                    if (old_useCapture !== new_useCapture) {
+                        elem.removeEventListener(event, handler.handler);
+                        elem.addEventListener(event, handler.handler, new_useCapture);
+                    }
+                } else {
+                    handler.userHandler = value;
+                }
                 handler.vdom = bindpoint.binding;
                 new_attr[ref_name] = handler;
 

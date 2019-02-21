@@ -1,4 +1,4 @@
-import {Vdom, BindPoint, VdomFragment} from "./vdom";
+import {Vdom, BindPoint, VdomFragment, VdomNode} from "./vdom";
 import {
     VDOM_NODE,
     VDOM_FRAGMENT,
@@ -14,7 +14,7 @@ interface Unkeyed {
     items: Array<number>;
 }
 
-export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: BindPoint) => {
+export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: BindPoint, init_queue: VdomNode[]) => {
     if (old_parent === null || old_parent.elem === null) {
         throw new Error("Parent node must not be null");
     }
@@ -37,10 +37,10 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
             const old_fragment_children = isFragment(old_child) ? old_child.children : [old_child];
             const new_fragment_children = isFragment(new_child) ? new_child.children : [new_child];
 
-            patchChildren(old_parent, old_fragment_children, new_fragment_children, next_parent, bindpoint);
+            patchChildren(old_parent, old_fragment_children, new_fragment_children, next_parent, bindpoint, init_queue);
 
         } else {
-            update(old_child, new_child, bindpoint);
+            update(old_child, new_child, bindpoint, init_queue);
 
             matching_vdoms.push(old_child_index === null ? -1 : old_child_index);
             if (new_child !== null && old_child !== null && old_child_index !== null) {
@@ -90,7 +90,7 @@ const clearExtraNodes = (old_parent: Vdom, old_children: Array<Vdom | null>, key
             if (removed.elem !== null && removed.parent !== null) {
                 old_parent.elem.removeChild(removed.elem);  
             }
-            update(removed, null, null);
+            update(removed, null, null, []);
         }
         ++unkeyed.index;
     }
@@ -102,7 +102,7 @@ const clearExtraNodes = (old_parent: Vdom, old_children: Array<Vdom | null>, key
                 // Null check override because TS can't introspect type narrowing through callbacks
                 old_parent.elem!.removeChild(removed.elem);
             }
-            update(removed, null, null);
+            update(removed, null, null, []);
         }
     });
 }
