@@ -161,9 +161,10 @@ const generateInstance = (
     }
 
     new_vdom.instance = generated;
+    new_vdom.elem = generated.elem;
 }
 
-const shouldUpdate = <PropType>(
+export const shouldUpdate = <PropType>(
     old_vdom: VdomFunctional<PropType & {[index: string]: any}, any>,
     new_vdom: VdomFunctional<PropType & {[index: string]: any}, any>
 ) => {
@@ -173,7 +174,7 @@ const shouldUpdate = <PropType>(
     } else if (typeof old_vdom !== typeof new_vdom) {
         return true;
 
-    } else if (new_vdom.props !== null && new_vdom.props.constructor === Object) {
+    } else if (new_vdom.props !== undefined && new_vdom.props.constructor === Object) {
         return -1 !== Object.keys(old_vdom.props)
             .findIndex(key => old_vdom.props[key] !== new_vdom.props[key]);
 

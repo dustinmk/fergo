@@ -36,26 +36,25 @@ describe("Components", () => {
     it("Redraws a parent component but not the child", () => {
         let text = "first";
 
-        const child_component = v("div", [
+        const dont_redraw = sinon.spy(() => v("p", text));
+        const static_instance = v("div", [
             v("p", "child"),
-            v("p", text)        // Should not redraw
+            v(dont_redraw)       // Should not redraw since the same instance is returned
         ]);
-
-        const generator = () => child_component;
-        const generator_spy = sinon.spy(generator);
-        const child = v(generator_spy);
+        const do_redraw = sinon.spy(() => static_instance)
 
         const parent = v(() => v("div", [
             v("p", "parent"),
             v("p", text),
-            child
+            v(do_redraw)  // this generator shold be called
         ]));
 
         mountAndMatch(parent, "p", ["parent", "first", "child", "first"]);
 
         text = "second";
         redrawAndMatch(parent, "p", ["parent", "second", "child", "first"]);
-        expect(generator_spy.calledOnce).to.be.true;
+        expect(dont_redraw.calledOnce).to.be.true;
+        expect(do_redraw.calledTwice).to.be.true;
     })
 
     it("Rebuilds a child component when parent updated", () => {

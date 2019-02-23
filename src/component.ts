@@ -1,4 +1,4 @@
-import {Vdom, v, ComponentAttributes} from "./vdom";
+import {Vdom, v, VdomFunctionalNotInit, VdomFunctional} from "./vdom";
 import {redraw} from "./redraw";
 
 export abstract class Component<PropType extends object = {}> {
@@ -11,7 +11,7 @@ export abstract class Component<PropType extends object = {}> {
         throw new Error("Must initiate component with view()");
     });
 
-    constructor(protected props: PropType) {}
+    constructor(protected props: PropType | null) {}
 
     protected redraw() {
         redraw(this.component);
@@ -19,18 +19,18 @@ export abstract class Component<PropType extends object = {}> {
 
     // Return component-style vdom: v((vdom, props) => vdom, props)
     public view() {
+        if (this.props === null) throw new Error("Props must be an obejct");
         return this.render(this.props);
-        
     }
 
-    static Make<PropType, ComponentType extends Component>(component: new (props: PropType) => ComponentType) {
+    static Make<PropType extends object, ComponentType extends Component<PropType>>(component: new (props: PropType) => ComponentType) {
         // Create the generator once so that it compares with itself equally when checking
         // if the instance should get new props or be replaced
-        const generator = (vdom: ComponentAttributes<PropType, ComponentType>) => {
-            if (vdom.state === undefined) throw new Error("State must be initialized");
-            vdom.state.props = vdom.props;
-            vdom.state.component = vdom as Vdom;
-            return vdom.state.view()
+        const generator = (vdom: VdomFunctionalNotInit<PropType, {instance: ComponentType}>) => {
+            if (vdom.state === null) throw new Error("State must be initialized");
+            vdom.state.instance.props = vdom.props;
+            vdom.state.instance.component = vdom as Vdom;
+            return vdom.state.instance.view()
         };
 
         return (props: PropType) => {
@@ -38,26 +38,26 @@ export abstract class Component<PropType extends object = {}> {
 
             const attributes = {
                 props,
-                state: instance,
+                state: {instance},
 
                 shouldUpdate: instance.shouldUpdate === undefined
                     ? undefined
-                    : (o: PropType, n: PropType, s: ComponentType) => {
-                        if (s.shouldUpdate === undefined) {
+                    : (o: PropType, n: PropType, s: {instance: ComponentType}) => {
+                        if (s.instance.shouldUpdate === undefined) {
                             throw new Error("shouldUpdate is not defined");
                         }
-                        return s.shouldUpdate(o, n);
+                        return s.instance.shouldUpdate(o, n);
                     },
 
-                onMount: (vdom: ComponentAttributes<PropType, ComponentType>) => {
-                    if (vdom.state !== undefined && vdom.state.onMount !== undefined) {
-                        vdom.state.onMount();
+                onMount: (vdom: VdomFunctional<PropType, {instance: ComponentType}>) => {
+                    if (vdom.state !== null && vdom.state.instance.onMount !== undefined) {
+                        vdom.state.instance.onMount();
                     }
                 },
 
-                onUnmount: (vdom: ComponentAttributes<PropType, ComponentType>) => {
-                    if (vdom.state !== undefined && vdom.state.onUnmount !== undefined) {
-                        vdom.state.onUnmount();
+                onUnmount: (vdom: VdomFunctional<PropType, {instance: ComponentType}>) => {
+                    if (vdom.state !== null && vdom.state.instance.onUnmount !== undefined) {
+                        vdom.state.instance.onUnmount();
                     }
                 },
             };

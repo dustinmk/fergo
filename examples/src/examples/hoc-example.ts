@@ -28,7 +28,7 @@ export default () => {
                 instance = component(vdom);
             }
 
-            if (vdom.state === undefined) throw new Error("state is undefined");
+            if (vdom.state === null) throw new Error("state is undefined");
             
             if (instance._type === VDOM_NODE) {
                 const style = {
@@ -43,14 +43,14 @@ export default () => {
 
                 attr.onmousedown = (event: MouseEvent) => {
                     const parent = (<HTMLElement>event.currentTarget).parentElement;
-                    if (parent !== null) {
+                    if (parent !== null && vdom.state !== null) {
                         const rect = (<HTMLElement>event.currentTarget).getBoundingClientRect();
                         vdom.state.offset_x = event.clientX - rect.left;
                         vdom.state.offset_y = event.clientY - rect.top;
                     }
 
                     const ondrag = (event: MouseEvent) => {
-                        if (vdom.state === undefined) throw new Error("state is undefined");
+                        if (vdom.state === null) throw new Error("state is undefined");
                         if (parent !== null) {
                             const rect = parent.getBoundingClientRect();
                             vdom.state.x = event.clientX - rect.left - vdom.state.offset_x;

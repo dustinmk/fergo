@@ -43,6 +43,10 @@ export interface ComponentAttributes<PropType = {}, StateType = {}> {
     onremove?: (vdom: VdomFunctional<PropType, StateType>) => void;
 }
 
+export type VdomFunctionalNotInit<PropType, StateType = {}> =
+    VdomFunctional<PropType, StateType> 
+    & { state: StateType | null };
+    
 export type VdomFunctionalAttributes<PropType, StateType>
     = Partial<ComponentAttributes<PropType, StateType>>
 
@@ -95,7 +99,7 @@ interface CustomAttr {
 }
 
 export type VdomGenerator<PropType, StateType>
-    = (vdom: VdomFunctional<PropType, StateType>) => Vdom;
+    = (vdom: VdomFunctionalNotInit<PropType, StateType>) => Vdom;
 
 type ChildBase = Vdom | VdomGenerator<any, any> | string | null | boolean;
 interface ChildArray {
@@ -131,7 +135,7 @@ export function v<PropType, StateType>(
             generator: selector,
             instance: null,
             state: attr.state === undefined ? null : attr.state,
-            props: attr.props === undefined ? null : attr.props,
+            props: attr.props,
             children: arg2 === undefined
                 ? attr.children === undefined
                     ? []
@@ -235,13 +239,13 @@ const childToVdom = (child: Child, parent: Vdom) => {
             instance: null,
             state: null,
             initial_state: null,
-            props: null,
+            props: undefined,
             children: [],
             bindpoint: undefined as BindPoint | undefined
         };
 
-        functional_vdom.bindpoint = {binding: functional_vdom as VdomFunctional<null, null>};
-        return functional_vdom as VdomFunctional<null, null>;
+        functional_vdom.bindpoint = {binding: functional_vdom as VdomFunctional<undefined, null>};
+        return functional_vdom as VdomFunctional<undefined, null>;
 
     } else if (Array.isArray(child)) {
         const vdom: VdomFragment = {

@@ -6,6 +6,9 @@ import state from "./examples/state-example";
 import reactive from "./examples/reactive-example";
 import hoc from "./examples/hoc-example";
 import svg from "./examples/svg-example";
+import modal from "./examples/modal-example";
+import flux from "./examples/flux-example";
+import calendar from "./examples/calendar-example";
 
 const examples: {[index: string]: () => Vdom } =  {
     "Todo": todo,
@@ -13,7 +16,10 @@ const examples: {[index: string]: () => Vdom } =  {
     "State": state,
     "Reactive": reactive,
     "HOC": hoc,
-    "SVG": svg
+    "SVG": svg,
+    "Modal": modal,
+    "Flux": flux,
+    "Calendar": calendar
 };
 
 const root = document.getElementById("root");
