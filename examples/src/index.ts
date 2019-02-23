@@ -9,6 +9,7 @@ import svg from "./examples/svg-example";
 import modal from "./examples/modal-example";
 import flux from "./examples/flux-example";
 import calendar from "./examples/calendar-example";
+import animation from "./examples/animation-example"
 
 const examples: {[index: string]: () => Vdom } =  {
     "Todo": todo,
@@ -19,7 +20,8 @@ const examples: {[index: string]: () => Vdom } =  {
     "SVG": svg,
     "Modal": modal,
     "Flux": flux,
-    "Calendar": calendar
+    "Calendar": calendar,
+    "Animation": animation
 };
 
 const root = document.getElementById("root");
