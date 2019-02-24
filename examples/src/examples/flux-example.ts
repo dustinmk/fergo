@@ -19,15 +19,15 @@ export default () => {
         count: 0
     };
 
+    // If using immutable state, can replace shouldUpdate on all connected vdoms with (o, n) => o !== n
     const connect = <StorePropType extends object, DirectPropType extends object>(
         map: (state: RootState) => StorePropType,
         component: (vdom: VdomFunctional<StorePropType & DirectPropType>) => Vdom
     ) => {
         return (vdom: VdomFunctional<DirectPropType>) => {
-            if (vdom.state === null) {
+            if (vdom.oninit === undefined) {
                 vdom.oninit = (v) => bound_vdoms.add(v);
                 vdom.onremove = (v) => bound_vdoms.delete(v);
-                vdom.state = vdom.props;
             }
             return v(component, {props: {...vdom.props, ...map(store)}});
         }

@@ -9,7 +9,8 @@ import svg from "./examples/svg-example";
 import modal from "./examples/modal-example";
 import flux from "./examples/flux-example";
 import calendar from "./examples/calendar-example";
-import animation from "./examples/animation-example"
+import animation from "./examples/animation-example";
+import depinj from "./examples/dependency-injection-example";
 
 const examples: {[index: string]: () => Vdom } =  {
     "Todo": todo,
@@ -21,7 +22,8 @@ const examples: {[index: string]: () => Vdom } =  {
     "Modal": modal,
     "Flux": flux,
     "Calendar": calendar,
-    "Animation": animation
+    "Animation": animation,
+    "Dependency_Injection": depinj
 };
 
 const root = document.getElementById("root");

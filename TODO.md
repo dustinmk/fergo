@@ -49,6 +49,7 @@
 - Non-component class: just a render () function and update component as necessary, using equal component culling
 - Call as library inside class (like etch)
 - object classes: click handlers on state object in order to modify state without resetting click handlers.
+- **TODO MVC**
 
 ## Article
 - Synthetic events: useCapture=true, inject event handlers on children (react doesn't allow this)

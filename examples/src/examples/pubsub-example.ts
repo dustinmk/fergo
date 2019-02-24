@@ -10,12 +10,6 @@ setInterval(() => {
     text_event.emit(`Count is: ${count}`);
 }, 1000);
 
-// TODO: Sample where parent tells child to update explicity through messages,
-// not relying on props
-// TODO: Sample with reactive pattern
-// TODO: Closure pattern example - store instances as high as possible in closure,
-//      then just include them in the returned closure
-
 class Root extends ObservingComponent<{}> {
     private prop_value = 0;
 
@@ -31,15 +25,15 @@ class Root extends ObservingComponent<{}> {
     ]);
 };
 
-interface MyProps {
+interface DocProps {
     prop: string;
     text_source: DataSource<string>;
 }
 
-const Doc = Component.Make(class extends ObservingComponent<MyProps> {
+const Doc = Component.Make(class extends ObservingComponent<DocProps> {
     private text: string = "default text";
 
-    constructor(props: MyProps) {
+    constructor(props: DocProps) {
         super(props);
         this.subscribe(props.text_source, text => this.text = text);
     }
