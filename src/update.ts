@@ -317,19 +317,21 @@ interface Handler {
     vdom: Vdom | null,
     userHandler: ((event: Event, vdom: Vdom) => void | Promise<void> | boolean) | null,
     handler: EventHandlerNonNull;
+    redraw: boolean;
 }
 
 const makeHandler = () => {
     const binding: Handler = {
         vdom: null,
         userHandler: null,
+        redraw: true,
         handler: (event: Event) => {
             if (binding.vdom !== null && binding.userHandler !== null) {
                 const returned = binding.userHandler(event, binding.vdom);
                 if (returned instanceof Promise) {
-                    returned.then(() => binding.vdom !== null && redraw(binding.vdom));
+                    returned.then(() => binding.vdom !== null && binding.redraw && redraw(binding.vdom));
                 } else {
-                    redraw(binding.vdom);
+                    binding.redraw && redraw(binding.vdom);
                 }
                 return returned;
             }
@@ -351,12 +353,15 @@ const patchAttributes = (
             if (key === "value") {
                 (<HTMLInputElement>elem).value = value;
                 
-                // Support useCapture by {onclick: [() => {}, true]}
-            } else if (typeof value === "function"
-                || (Array.isArray(value)
-                    && value.length > 0
-                    && typeof value[0] === "function")
-            ) {
+            } else if (key.startsWith("on")) {
+
+                // May pass in {redraw, useCapture, handler} or just the handler
+                let params: {redraw?: boolean, useCapture: boolean, handler: (e: Event) => any};
+                if (typeof value === "function") {
+                    params = {redraw: true, useCapture: false, handler: value};
+                } else {
+                    params = value;
+                }
 
                 // Inject the user-provided handler to a static event handler
                 // through the closure. Update the bound object in the event handler
@@ -370,27 +375,24 @@ const patchAttributes = (
                     elem.addEventListener(
                         event,
                         handler.handler,
-                        Array.isArray(value) 
-                            ? value.length > 1 ? value[1] : false
-                            : false
+                        params.useCapture
                     )
                 } else {
                     handler = old_attr[ref_name];
                 }
 
-                if (Array.isArray(value)) {
-                    handler.userHandler = value[0];
-                    const old_useCapture = Array.isArray(old_attr[key]) 
-                        ? value.length > 1 ? value[1] : false
-                        : false
-                    const new_useCapture = value.length > 1 ? value[1] : false;
-                    if (old_useCapture !== new_useCapture) {
-                        elem.removeEventListener(event, handler.handler);
-                        elem.addEventListener(event, handler.handler, new_useCapture);
-                    }
+                const old_useCapture = typeof old_attr[key] === "object"
+                        ? old_attr[key].useCapture
+                        : false;
+
+                if (old_useCapture !== params.useCapture) { 
+                    elem.removeEventListener(event, handler.handler);
+                    elem.addEventListener(event, handler.handler, params.useCapture);
                 } else {
                     handler.userHandler = value;
                 }
+                handler.userHandler = params.handler;
+                handler.redraw = params.redraw;
                 handler.vdom = bindpoint.binding;
                 new_attr[ref_name] = handler;
 

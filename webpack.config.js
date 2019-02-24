@@ -41,6 +41,7 @@ const buildConfig = (root_dir, entry, copy_files) => {
 }
 
 module.exports = [
+    buildConfig("examples", "examples/router-example", ["examples/src/router-example.html"]),
     buildConfig("examples", "index", ["examples/src/index.html"]),
     merge(buildConfig("benchmark", "runner", [
         {

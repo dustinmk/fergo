@@ -18,6 +18,8 @@ export const redrawAsync = (vdom: Vdom) => {
 };
 
 const handleFrame = () => {
+    raf_id = 0;
+
     // Take old write queue
     const read_queue = double_buffered_queue[current_queue_id];
 
@@ -29,7 +31,6 @@ const handleFrame = () => {
 
     // Set old write queue (now read queue) to empty
     double_buffered_queue[1 - current_queue_id] = [];
-    raf_id = 0;
 }
 
 // Synchronous redraw
@@ -70,6 +71,16 @@ export const redrawSync = (vdom: Vdom) => {
             && vdom.elem !== null
         ) {
             old_elem.parentNode.replaceChild(vdom.elem, old_elem);
+        }
+
+        // A chain of VdomFunctionals needs to have their elems updated if the redraw is
+        // initiated inside the chain
+        // Can't just redraw from top of chain because props might not change on children
+        // so the forced redraw won't work
+        let parent_vdom = vdom.parent;
+        while (parent_vdom !== null && parent_vdom._type === VDOM_FUNCTIONAL) {
+            parent_vdom.elem = vdom.elem;
+            parent_vdom = parent_vdom.parent;
         }
 
         init_queue.forEach(v => v.attributes.oninit !== undefined && v.attributes.oninit(v));
