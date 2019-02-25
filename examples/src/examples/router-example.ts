@@ -1,4 +1,4 @@
-import {v, mount, router, VdomFunctional, Path, go, link} from "minim/index";
+import {v, mount, router, VdomFunctional, Path, go, link, redraw} from "minim/index";
 
 const subrouter = router({
     "/a": () => v("p", "a"),
@@ -9,6 +9,15 @@ const subrouter = router({
     ])
 }, v("p", "goose 404"));
 
+const numrouter = router({
+    "/1": () => v("p", "1"),
+    "/2": () => v("p", "2"),
+    "/3": () => v("div", [
+        link(numrouter, "/1", "1"),
+        link(numrouter, "/2", "2")
+    ])
+}, v("p", "boose 404"));
+
 const r = router({
     "/": () => v("div", [
         v("p", "home"),
@@ -18,7 +27,17 @@ const r = router({
     "/g/:param/w/:goose/l": (vdom: VdomFunctional<Path>) =>
         v("p", `Params: ${vdom.props["param"]} ${vdom.props["goose"]}`),
     "/p/*": (vdom: VdomFunctional<Path>) => v("p", `Path: ${vdom.props.path}`),
-    "/r": subrouter
+    "/r": subrouter,
+    "/t/*": (vdom: VdomFunctional<Path>) => {
+        numrouter.parent = r;
+        numrouter.path = vdom.props.path;
+        numrouter.parent_path = ["t"];
+        redraw(numrouter.view);
+        return v("div", [
+            v("p", "numrouter"),
+            numrouter.view
+        ])
+    }
 }, v("p", "404"));
 
 const root = document.getElementById("root");
@@ -33,5 +52,6 @@ mount(root, () => v("div", [
     link(r, "/r/a", "Sub A"),
     link(r, "/r/b", "Sub B"),
     link(r, "/r/c", "Sub c"),
+    link(r, "/t/3", "Nested"),
     r.view
 ]));

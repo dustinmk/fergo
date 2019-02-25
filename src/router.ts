@@ -6,7 +6,7 @@ export type Path = {[index: string]: string | string[]} & {path: string[]};
 export interface Router {
     parent: Router | null;
     parent_path: string[];
-    view: Vdom;
+    view: VdomFunctional<Path>;
     routes: Route[];
     path: string[];
 }
@@ -35,7 +35,7 @@ export const router = (routes: {[index: string]: Router | RouteComponent}, defau
             return component === null
                 ? default_component
                 : component
-        }),
+        }) as VdomFunctional<Path>,
         routes: [],
         path
     }
@@ -70,18 +70,18 @@ export const link = (router: Router, path: string, contents: Vdom | string) =>
     v("a", {onclick: {
         redraw: false,
         handler: () => {
-            go(router, pathFromURL(path));
-            redraw(router.view);
+            redraw(go(router, pathFromURL(path)))
         }
     }}, contents)
 
-export const go = (router: Router, path: string[]) => {
+export const go = (router: Router, path: string[]): VdomFunctional<Path> => {
     if (router.parent !== null) {
         router.path = path;
-        go(router.parent, router.parent_path.concat(path));
+        return go(router.parent, router.parent_path.concat(path));
     } else {
         router.path = path;
         window.history.pushState(path, "", "/" + path.join("/"))
+        return router.view;
     }
 }
 
