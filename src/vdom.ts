@@ -167,8 +167,8 @@ export function v<PropType, StateType>(
         children = [arg1];
     } else if (arg1 instanceof Array) {
         children = arg1;
-    } else if (arg1 !== null && typeof arg1 === "object" && arg1._type !== undefined) {
-        children = [arg1];
+    } else if (arg1 !== null && typeof arg1 === "object" && arg1._type !== undefined && (arg1._type === VDOM_NODE || arg1._type === VDOM_FUNCTIONAL)) {
+        children = [arg1 as VdomNode];
     } else if (arg1 !== null && typeof arg1 === "object") {
         attributes = arg1;
     } else if (arg1 !== undefined) {
