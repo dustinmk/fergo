@@ -10,8 +10,7 @@
     "test": "node node_modules/mocha/bin/_mocha --timeout 120000 -r ts-node/register -r tsconfig-paths/register test/**/*_test.ts",
     "examples-build": "webpack",
     "examples-serve": "node_modules/.bin/servor examples/dist router-example.html",
-    "examples": "npm run examples-build & npm run examples-serve",
-    "postinstall": "npm run build"
+    "examples": "npm run examples-build & npm run examples-serve"
   },
   "author": "",
   "license": "ISC",
