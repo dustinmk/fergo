@@ -3,10 +3,10 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 const merge = require("deepmerge");
 const nodeExternals = require("webpack-node-externals");
 
-const buildConfig = (root_dir, entry, copy_files) => {
+const buildConfig = (root_dir, entry, output, copy_files) => {
     return {
         mode: "development",
-        entry: path.resolve(__dirname, root_dir, "src", `${entry}.ts`),
+        entry: path.resolve(__dirname, root_dir, "src", entry),
         devtool: "inline-source-map",
         module: {
             rules: [
@@ -23,7 +23,7 @@ const buildConfig = (root_dir, entry, copy_files) => {
             ]
         },
         resolve: {
-            extensions: [".tsx", ".ts", ".jsx", ".js", ".html"],
+            extensions: [".tsx", ".ts", ".jsx", ".js", ".html", ".css"],
             alias: {
                 minim: path.resolve(__dirname, "src"),
                 "minim-examples": path.resolve(__dirname, "examples", "src"),
@@ -31,7 +31,7 @@ const buildConfig = (root_dir, entry, copy_files) => {
             }
         },
         output: {
-            filename: `${entry}.js`,
+            filename: output,
             path: path.resolve(__dirname, root_dir, "dist")
         },
         plugins: [
@@ -41,9 +41,15 @@ const buildConfig = (root_dir, entry, copy_files) => {
 }
 
 module.exports = [
-    buildConfig("examples", "examples/router-example", ["examples/src/router-example.html"]),
-    buildConfig("examples", "index", ["examples/src/index.html"]),
-    merge(buildConfig("benchmark", "runner", [
+    buildConfig("examples", "krausest.js", "krausest.js", [
+        "examples/src/krausest.html",
+        "examples/src/krausest.css",
+        "examples/src/bootstrap.css",
+        "examples/src/main.css"
+    ]),
+    buildConfig("examples", "examples/router-example.ts", "examples/router-example.js", ["examples/src/router-example.html"]),
+    buildConfig("examples", "index.ts", "index.js", ["examples/src/index.html"]),
+    merge(buildConfig("benchmark", "runner.ts", "runner.js", [
         {
             from: "./node_modules/benchmark/benchmark.js",
             to: "benchmark.js"
@@ -55,8 +61,8 @@ module.exports = [
     ]), {
         externals: ["benchmark", "lodash"]
     }),
-    buildConfig("benchmark", "results", []),
-    merge(buildConfig("benchmark", "server", ["benchmark/src/index.html.mustache"]), {
+    buildConfig("benchmark", "results.ts", "results.js", []),
+    merge(buildConfig("benchmark", "server.ts", "server.js", ["benchmark/src/index.html.mustache"]), {
         target: "node",
         externals: [nodeExternals()],
         node: {

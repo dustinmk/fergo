@@ -19,10 +19,14 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
         throw new Error("Parent node must not be null");
     }
 
+    // while old_key === new_key || old_tag === new_tag || either old or new are null: update()
+    // Go from start to end, end to start, and reverse order
+    // Then otherwise do splitKeyed on remaining nodes
     const [keyed, unkeyed] = splitKeyed(old_children);
     const old_node_indexes: number[] = [];
     const matching_vdoms: Array<number> = [];
 
+    // TODO: Skip over matching keys at front or end, including reversals, then skip splitKeyed() for them.
     let new_index = 0;
     let current_index: number = 0;
     while (new_index < new_children.length) {

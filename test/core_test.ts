@@ -315,7 +315,7 @@ describe("Core", () => {
         redrawAndMatch(root, "p", ["567"])
     });
 
-    it.only("Adds then removes a class", () => {
+    it("Adds then removes a class", () => {
         let toggle = true;
         const root = v(() => v(toggle ? "p.class" : "p", "text"));
         mount(getRootElement(), root);

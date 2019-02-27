@@ -15,7 +15,7 @@ const makeConfig = (root_folder, name, entry, extra) => {
     input: path.join(root_folder, "src", entry),
     output: {
       dir: path.join(root_folder, "dist"),
-      format: "cjs",
+      format: "esm",
       name: name
     },
     plugins: [

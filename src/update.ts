@@ -5,7 +5,6 @@ import {
     VDOM_TEXT,
     VDOM_FUNCTIONAL,
 } from "./constants";
-import {hasOwnProperty} from "./dom";
 import {redraw} from "./redraw";
 import {patchChildren} from "./patch-children";
 
@@ -135,6 +134,7 @@ const updateFunctionalVdom = (
     return new_vdom.elem;
 }
 
+// TODO: Merge back into updateFunctionalVdom
 const generateInstance = (
     old_vdom: Vdom | null,
     new_vdom: VdomFunctional<any, any>,
@@ -168,21 +168,27 @@ export const shouldUpdate = <PropType>(
     old_vdom: VdomFunctional<PropType & {[index: string]: any}, any>,
     new_vdom: VdomFunctional<PropType & {[index: string]: any}, any>
 ) => {
-    if (new_vdom.shouldUpdate !== undefined) {
-        return new_vdom.shouldUpdate(old_vdom.props, new_vdom.props, new_vdom.state);
+    if (old_vdom.shouldUpdate !== undefined) {
+        return old_vdom.shouldUpdate(old_vdom.props, new_vdom.props, new_vdom.state);
         
     } else if (typeof old_vdom !== typeof new_vdom) {
         return true;
 
     } else if (new_vdom.props !== undefined && new_vdom.props.constructor === Object) {
-        return -1 !== Object.keys(old_vdom.props)
-            .findIndex(key => old_vdom.props[key] !== new_vdom.props[key]);
+        for (const key in old_vdom.props) {
+
+            if (old_vdom.props[key] !== new_vdom.props[key]) {
+                return true;
+            }
+        }
+        return false;
 
     } else {
         return old_vdom.props !== new_vdom.props;
     }
 }
 
+// TODO: Merge back into update and reorder ifs
 const updateNode = (
     old_vdom: Vdom | null,
     new_vdom: VdomNode,
@@ -196,6 +202,7 @@ const updateNode = (
         return patchVdomNode(old_vdom, new_vdom, bindpoint, init_queue);
 
     } else {
+        // This is a duplicate call
         updateNullNode(old_vdom);
         return createHTMLElement(new_vdom, bindpoint, init_queue);
     }
@@ -227,16 +234,17 @@ const patchVdomNode = (
         if (old_vdom.children.length !== 1
             || old_vdom.children[0] === null
             || old_vdom.children[0]!._type !== VDOM_TEXT
-            || (old_vdom.children[0]! as VdomText).text !== (new_vdom.children[0]! as VdomText).text
         ) {
-            old_vdom.elem.childNodes.forEach(child => old_vdom.elem!.removeChild(child));
+            old_vdom.children.forEach(child => updateNullNode(child));
+            // This implicitly removes DOM children
+            old_vdom.elem.textContent = (new_vdom.children[0] as VdomText).text;
+        } else if ((old_vdom.children[0]! as VdomText).text !== (new_vdom.children[0]! as VdomText).text) {
             old_vdom.elem.textContent = (new_vdom.children[0] as VdomText).text;
         }
         
         new_vdom.children[0]!.elem = old_vdom.elem.firstChild;
         return old_vdom.elem;
 
-        // TODO: Fast compare children
     } else {
         return patchChildren(old_vdom, old_vdom.children, new_vdom.children, null, bindpoint, init_queue);
     }
@@ -266,11 +274,19 @@ const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint, init_queue: Vdo
 }
 
 const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPoint, init_queue: VdomNode[]) => {
+    if (vdoms.length === 1 && vdoms[0] !== null && vdoms[0]!._type === VDOM_TEXT) {
+        elem.textContent = (vdoms[0] as VdomText).text;
+        (vdoms[0] as VdomText).elem = elem.firstChild;
+        return;
+    }
+
     for (const child of vdoms) {
         if (child !== null && child._type === VDOM_FRAGMENT) {
             createChildren(elem, child.children, bindpoint, init_queue);
 
         } else {
+            // TODO: Separate create path once the root node is determined to be new
+            // Don't use update()
             const child_elem = update(null, child, bindpoint, init_queue)
             if (child_elem !== null) {
                 elem.appendChild(child_elem);
@@ -281,13 +297,13 @@ const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPo
 
 const patchClasses = (elem: Element, old_classes: ClassList, new_classes: ClassList) => {
     for (const c in new_classes) {
-        if (! hasOwnProperty(old_classes, c) ) {
+        if ( old_classes[c] === undefined ) {
             elem.classList.add(c);
         }
     }
 
     for (const c in old_classes) {
-        if (! hasOwnProperty(new_classes, c) ) {
+        if ( new_classes[c] === undefined ) {
             elem.classList.remove(c);
         }
     }
@@ -300,14 +316,14 @@ const patchStyle = (
 ) => {
     for (const key in new_style) {
         if (new_style[key] !== undefined
-            && (!hasOwnProperty(old_style, key) || old_style[key] !== new_style[key])
+            && (old_style[key] === undefined || old_style[key] !== new_style[key])
         ) {
             elem.style.setProperty(key, new_style[key])
         }
     }
 
     for (const key in old_style) {
-        if (!hasOwnProperty(new_style, key)) {
+        if (new_style[key] === undefined) {
             elem.style.setProperty(key, null);
         }
     }
@@ -407,7 +423,7 @@ const patchAttributes = (
 
     for (const key in old_attr) {
         const value = old_attr[key];
-        if (!EXCLUDED_ATTR.has(key) && !hasOwnProperty(new_attr, key)) {
+        if (!EXCLUDED_ATTR.has(key) && new_attr[key] === undefined) {
 
             // Only remove event handlers at _on{event}_ref since the user-provided
             // on{event} were not directly added as a listener
