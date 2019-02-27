@@ -167,7 +167,7 @@ export function v<PropType, StateType>(
         children = [arg1];
     } else if (arg1 instanceof Array) {
         children = arg1;
-    } else if (arg1 !== null && typeof arg1 === "object" && arg1._type !== undefined && arg1._type === VDOM_NODE) {
+    } else if (arg1 !== null && typeof arg1 === "object" && arg1._type !== undefined) {
         children = [arg1];
     } else if (arg1 !== null && typeof arg1 === "object") {
         attributes = arg1;
@@ -175,10 +175,10 @@ export function v<PropType, StateType>(
         throw new Error(`Incorrect arguments passed to v(${selector}`);
     }
 
-    if (typeof arg2 === "string" || typeof arg2 === "function") {
-        children = [arg2];
-    } else if (arg2 instanceof Array) {
+    if (arg2 instanceof Array) {
         children = arg2;
+    } else if (typeof arg2 === "string" || typeof arg2 === "function" || (typeof arg2 === "object" && arg2 !== null && arg2._type !== undefined)) {
+        children = [arg2];
     }
 
     return v_impl(selector, attributes, children);

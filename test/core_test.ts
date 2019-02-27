@@ -313,6 +313,16 @@ describe("Core", () => {
         mountAndMatch(root, "p", ["1234"]);
         toggle = true;
         redrawAndMatch(root, "p", ["567"])
+    });
+
+    it.only("Adds then removes a class", () => {
+        let toggle = true;
+        const root = v(() => v(toggle ? "p.class" : "p", "text"));
+        mount(getRootElement(), root);
+        expect(document.querySelector("p")).to.have.class("class");
+        toggle = false;
+        redraw(root);
+        expect(document.querySelector("p")).to.not.have.class("class");
     })
 });
 
