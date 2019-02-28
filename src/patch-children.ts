@@ -22,41 +22,42 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
     // while old_key === new_key || old_tag === new_tag || either old or new are null: update()
     // Go from start to end, end to start, and reverse order
     // Then otherwise do splitKeyed on remaining nodes
+    // Remeber fragments
     const [keyed, unkeyed] = splitKeyed(old_children);
-    const old_node_indexes: number[] = [];
-    const matching_vdoms: Array<number> = [];
+    const common_node_indexes: number[] = [];   // Nodes shared between new and old
+    const matching_vdoms: Array<number> = [];   // Old vdoms paired with new vdoms
 
     // TODO: Skip over matching keys at front or end, including reversals, then skip splitKeyed() for them.
     let new_index = 0;
-    let current_index: number = 0;
+    let old_index: number = 0;
     while (new_index < new_children.length) {
         const new_child = new_children[new_index];
-        const old_child_index = findOldVdomIndex(new_child, keyed, unkeyed);
-        const old_child = old_child_index === null ? null : old_children[old_child_index];
+        const matching_child_index = findOldVdomIndex(new_child, keyed, unkeyed);
+        const matching_child = matching_child_index === null ? null : old_children[matching_child_index];
         
-        if (isFragment(new_child) || isFragment(old_child)) {
-            let next_parent = findFragmentInsertPoint(current_index + 1, old_children);
+        if (isFragment(new_child) || isFragment(matching_child)) {
+            let next_parent = findFragmentInsertPoint(old_index + 1, old_children);
             if (next_parent === null) next_parent = parent_next_node;
 
-            const old_fragment_children = isFragment(old_child) ? old_child.children : [old_child];
+            const old_fragment_children = isFragment(matching_child) ? matching_child.children : [matching_child];
             const new_fragment_children = isFragment(new_child) ? new_child.children : [new_child];
 
             patchChildren(old_parent, old_fragment_children, new_fragment_children, next_parent, bindpoint, init_queue);
 
         } else {
-            update(old_child, new_child, bindpoint, init_queue);
+            update(matching_child, new_child, bindpoint, init_queue);
 
-            matching_vdoms.push(old_child_index === null ? -1 : old_child_index);
-            if (new_child !== null && old_child !== null && old_child_index !== null && old_child.elem === new_child.elem) {
-                old_node_indexes.push(old_child_index);
+            matching_vdoms.push(matching_child_index === null ? -1 : matching_child_index);
+            if (new_child !== null && matching_child !== null && matching_child_index !== null && matching_child.elem === new_child.elem) {
+                common_node_indexes.push(matching_child_index);
             }
         }
 
         ++new_index;
-        ++current_index;
+        ++old_index;
     }
 
-    const lis_new_nodes = lis(old_node_indexes);
+    const lis_new_nodes = lis(common_node_indexes);
     patchElements(old_parent.elem, old_children, new_children, matching_vdoms, lis_new_nodes, parent_next_node === null ? null : parent_next_node.elem);
     clearExtraNodes(old_parent, old_children, keyed, unkeyed);
 

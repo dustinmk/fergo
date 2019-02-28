@@ -315,9 +315,7 @@ const patchStyle = (
     new_style: Style
 ) => {
     for (const key in new_style) {
-        if (new_style[key] !== undefined
-            && (old_style[key] === undefined || old_style[key] !== new_style[key])
-        ) {
+        if (new_style[key] !== undefined && old_style[key] !== new_style[key]) {
             elem.style.setProperty(key, new_style[key])
         }
     }
@@ -330,24 +328,24 @@ const patchStyle = (
 }
 
 interface Handler {
-    vdom: Vdom | null,
+    bindpoint: BindPoint,
     userHandler: ((event: Event, vdom: Vdom) => void | Promise<void> | boolean) | null,
     handler: EventHandlerNonNull;
     redraw: boolean;
 }
 
-const makeHandler = () => {
+const makeHandler = (bindpoint: BindPoint) => {
     const binding: Handler = {
-        vdom: null,
+        bindpoint: bindpoint,
         userHandler: null,
         redraw: true,
         handler: (event: Event) => {
-            if (binding.vdom !== null && binding.userHandler !== null) {
-                const returned = binding.userHandler(event, binding.vdom);
+            if (binding.bindpoint.binding !== null && binding.userHandler !== null) {
+                const returned = binding.userHandler(event, binding.bindpoint.binding);
                 if (returned instanceof Promise) {
-                    returned.then(() => binding.vdom !== null && binding.redraw && redraw(binding.vdom));
+                    returned.then(() => binding.bindpoint.binding !== null && binding.redraw && redraw(binding.bindpoint.binding));
                 } else {
-                    binding.redraw && redraw(binding.vdom);
+                    binding.redraw && redraw(binding.bindpoint.binding);
                 }
                 return returned;
             }
@@ -387,7 +385,7 @@ const patchAttributes = (
                 const ref_name = `__on${event}_ref`;
                 let handler;
                 if (old_attr[ref_name] === undefined) {
-                    handler = makeHandler();
+                    handler = makeHandler(bindpoint);
                     elem.addEventListener(
                         event,
                         handler.handler,
@@ -409,7 +407,7 @@ const patchAttributes = (
                 }
                 handler.userHandler = params.handler;
                 handler.redraw = params.redraw;
-                handler.vdom = bindpoint.binding;
+                handler.bindpoint = bindpoint;
                 new_attr[ref_name] = handler;
 
             } else if(typeof value === "boolean") {
