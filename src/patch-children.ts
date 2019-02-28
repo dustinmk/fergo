@@ -19,15 +19,78 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
         throw new Error("Parent node must not be null");
     }
 
+    // Fast path for matching beginning
+    // TODO: Match unkeyed (key=null) nodes, but resort to LIS if mixed and unmatched keys
+    // TODO: must handle insert (old=null) delete (new=null) append (new_index > old_children.length)
+    let new_index = 0;
+    let old_index: number = 0;
+    while (new_index < new_children.length && old_index < old_children.length) {
+        const new_child = new_children[new_index];
+        const old_child = old_children[old_index];
+        let new_elem: Node | null;
+        if (new_child === null
+            || old_child === null
+            || new_child.key === null
+            || new_child.key !== old_child.key
+            || new_child._type !== old_child._type
+            || new_child._type === VDOM_FRAGMENT
+        ) {
+            break;
+        } else {
+            new_elem = update(old_child, new_child, bindpoint, init_queue);
+            if (old_child.elem !== new_elem
+                && old_parent.elem !== null
+                && new_elem !== null
+                && old_child.elem !== null
+            ) {
+                old_parent.elem.replaceChild(new_elem, old_child.elem);
+            }
+        }
+        ++new_index;
+        ++old_index;
+    }
+
+    // TODO: Fastpath reverse keyed
+    // TODO: Fastpath append keyed
+    // TODO: Fastpath remove keyed
+    // TODO: Fastpath unkeyed
+    // TODO: Fastpath clear
+
+    const lis_new_begin = new_index;
+    const lis_old_begin = old_index;
+    const lis_new_end = new_children.length;
+    const lis_old_end = old_children.length;
+
+    if (lis_new_end - lis_new_begin <= 0 && lis_old_end - lis_old_begin <= 0) {
+        return old_parent.elem;
+    } else {
+        // Treat rest as a fragment
+        // TODO: avoid slicing the arrays
+        return reconcileWithLIS(
+            old_parent,
+            old_children.slice(lis_old_begin, lis_old_end),
+            new_children.slice(lis_new_begin, lis_new_end),
+            lis_old_end >= old_children.length ? parent_next_node : old_children[lis_old_end],
+            bindpoint,
+            init_queue);
+    }
+
     // while old_key === new_key || old_tag === new_tag || either old or new are null: update()
     // Go from start to end, end to start, and reverse order
     // Then otherwise do splitKeyed on remaining nodes
     // Remeber fragments
+    
+}
+
+const reconcileWithLIS = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: BindPoint, init_queue: VdomNode[]) => {
+    if (old_parent.elem === null) {
+        throw new Error("Old parent elem must exist");
+    }
+
     const [keyed, unkeyed] = splitKeyed(old_children);
     const common_node_indexes: number[] = [];   // Nodes shared between new and old
     const matching_vdoms: Array<number> = [];   // Old vdoms paired with new vdoms
 
-    // TODO: Skip over matching keys at front or end, including reversals, then skip splitKeyed() for them.
     let new_index = 0;
     let old_index: number = 0;
     while (new_index < new_children.length) {

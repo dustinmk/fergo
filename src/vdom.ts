@@ -13,6 +13,7 @@ import {
 interface VdomBase {
     parent: Vdom | null;
     elem: Node | null;
+    key: any;
 }
 
 export interface VdomFunctional<PropType, StateType = {}>
@@ -36,8 +37,8 @@ export interface ComponentAttributes<PropType = {}, StateType = {}> {
     _type?: T_VDOM_FUNCTIONAL;
     props: PropType;
     state: StateType;
+    key: any;
     children: Array<Vdom | null>;
-    key?: any;
     shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
     oninit?: (vdom: VdomFunctional<PropType, StateType>) => void;
     onremove?: (vdom: VdomFunctional<PropType, StateType>) => void;
@@ -57,7 +58,6 @@ export interface BindPoint {
 export interface VdomNode extends VdomBase {
     _type: T_VDOM_NODE;
     tag: string;
-    key: any;
     attributes: CustomAttr & Attributes;
     classes: ClassList;
     children: Array<Vdom | null>;
@@ -227,7 +227,8 @@ const childToVdom = (child: Child, parent: Vdom) => {
             _type: VDOM_TEXT,
             parent: parent,
             text: child,
-            elem: null
+            elem: null,
+            key: null
         } as VdomText;
 
     } else if(typeof child === "function") {
@@ -241,6 +242,7 @@ const childToVdom = (child: Child, parent: Vdom) => {
             initial_state: null,
             props: undefined,
             children: [],
+            key: null,
             bindpoint: undefined as BindPoint | undefined
         };
 
@@ -253,6 +255,7 @@ const childToVdom = (child: Child, parent: Vdom) => {
             parent: parent,
             children: [],
             elem: null,
+            key: null
         };
 
         vdom.children = child.map(fragment_child => childToVdom(fragment_child, vdom));
