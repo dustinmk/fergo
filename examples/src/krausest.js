@@ -7,7 +7,9 @@ let selected = null;
 const Row = vdom => {
     if (vdom.state === null) {
         vdom.state = 1
-        vdom.attributes.shouldUpdate = (o, n) => o.label !== n.label || o.selected !== n.selected;
+        vdom.attributes = {
+            shouldUpdate: (o, n) => o.label !== n.label || o.selected !== n.selected,
+        }
     }
 
     return v(vdom.props.id === store.selected ? "tr.danger" : "tr", [

@@ -197,6 +197,8 @@ function isFunctionalAttributes<PropType, StateType>(
         && arg !== null
 }
 
+// TODO: Child nodes can stay strings if all the children are strings, otherwise need a node
+// TODO: Fragments can stay arrays always
 const childToVdom = (child: Child, parent: Vdom) => {
 
     // Use VdomNull as a placeholder for conditional nodes

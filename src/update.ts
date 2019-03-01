@@ -325,26 +325,26 @@ const patchStyle = (
 
 interface Handler {
     bindpoint: BindPoint,
-    userHandler: ((event: Event, vdom: Vdom) => void | Promise<void> | boolean) | null,
+    userHandler: ((event: Event, vdom: Vdom) => void | Promise<void> | boolean),
     handler: EventHandlerNonNull;
     redraw: boolean;
+    useCapture: boolean;
 }
 
-const makeHandler = (bindpoint: BindPoint) => {
+const makeHandler = (bindpoint: BindPoint, userHandler: (e: Event) => any, do_redraw: boolean, useCapture: boolean) => {
     const binding: Handler = {
         bindpoint: bindpoint,
-        userHandler: null,
-        redraw: true,
+        userHandler: userHandler,
+        redraw: do_redraw,
+        useCapture: useCapture,
         handler: (event: Event) => {
-            if (binding.bindpoint.binding !== null && binding.userHandler !== null) {
-                const returned = binding.userHandler(event, binding.bindpoint.binding);
-                if (returned instanceof Promise) {
-                    returned.then(() => binding.bindpoint.binding !== null && binding.redraw && redraw(binding.bindpoint.binding));
-                } else {
-                    binding.redraw && redraw(binding.bindpoint.binding);
-                }
-                return returned;
+            const returned = binding.userHandler(event, binding.bindpoint.binding);
+            if (returned instanceof Promise) {
+                returned.then(() => binding.redraw && redraw(binding.bindpoint.binding));
+            } else {
+                binding.redraw && redraw(binding.bindpoint.binding);
             }
+            return returned;
         }
     };
     
@@ -359,52 +359,47 @@ const patchAttributes = (
 ) => {
     for (const key in new_attr) {
         const value = new_attr[key];
-        if (!isReservedAttribute(key) && value !== old_attr[key]) {
+        if (!EXCLUDED_ATTR.has(key) && value !== old_attr[key]) {
             if (key === "value") {
                 (<HTMLInputElement>elem).value = value;
                 
             } else if (key.startsWith("on")) {
 
-                // May pass in {redraw, useCapture, handler} or just the handler
-                let params: {redraw?: boolean, useCapture: boolean, handler: (e: Event) => any};
+                let userHandler: (e: Event) => any;
+                let redraw = true;
+                let useCapture = false;
+
                 if (typeof value === "function") {
-                    params = {redraw: true, useCapture: false, handler: value};
+                    userHandler = value;
                 } else {
-                    params = value;
+                    userHandler = value.handler;
+                    redraw = value.redraw === undefined ? true : value;
+                    useCapture = value.useCapture === undefined ? false : value;
                 }
 
-                // Inject the user-provided handler to a static event handler
-                // through the closure. Update the bound object in the event handler
-                // closure with the user-provided event handler for fast updates.
-                // Only add/remove the event handler if there was no event handler before/after
-                const event = eventName(key);
-                const ref_name = `__on${event}_ref`;
-                let handler;
-                if (old_attr[ref_name] === undefined) {
-                    handler = makeHandler(bindpoint);
+                // Only make one object and bind directly onto on{event}
+                let handler: Handler;
+                if (old_attr[key] === undefined) {
+                    handler = makeHandler(bindpoint, userHandler, redraw, useCapture);
                     elem.addEventListener(
-                        event,
+                        key.slice(2),
                         handler.handler,
-                        params.useCapture
+                        useCapture
                     )
                 } else {
-                    handler = old_attr[ref_name];
-                }
+                    handler = old_attr[key] as Handler;
+                    handler.userHandler = userHandler;
+                    handler.redraw = redraw;
+                    handler.bindpoint = bindpoint;
 
-                const old_useCapture = typeof old_attr[key] === "object"
-                        ? old_attr[key].useCapture
-                        : false;
-
-                if (old_useCapture !== params.useCapture) { 
-                    elem.removeEventListener(event, handler.handler);
-                    elem.addEventListener(event, handler.handler, params.useCapture);
-                } else {
-                    handler.userHandler = value;
+                    if (useCapture !== handler.useCapture) {
+                        handler.useCapture = useCapture;
+                        const event = key.slice(2);
+                        elem.removeEventListener(event, handler.handler);
+                        elem.addEventListener(event, handler.handler, useCapture);
+                    }
                 }
-                handler.userHandler = params.handler;
-                handler.redraw = params.redraw;
-                handler.bindpoint = bindpoint;
-                new_attr[ref_name] = handler;
+                new_attr[key] = handler;
 
             } else if(typeof value === "boolean") {
                 elem.toggleAttribute(key, value);
@@ -422,9 +417,8 @@ const patchAttributes = (
             // Only remove event handlers at _on{event}_ref since the user-provided
             // on{event} were not directly added as a listener
             if (typeof value === "function" && key.startsWith("on")) {
-                const event_name = eventName(key);
-                const ref_name = `__on${event_name}_ref`;
-                elem.removeEventListener(event_name, old_attr[ref_name].handler);
+                const event = key.slice(2);
+                elem.removeEventListener(event, old_attr[key].handler);
 
             } else if (typeof value === "boolean") {
                 elem.toggleAttribute(key, false);
@@ -437,15 +431,5 @@ const patchAttributes = (
 }
 
 const EXCLUDED_ATTR = new Set(["key", "shouldUpdate", "oninit", "onremove", "style", "namespace"]);
-const isReservedAttribute = (key: string) => {
-    return EXCLUDED_ATTR.has(key) || key.startsWith("__on");
-}
-
-const eventName = (key: string) => {
-    if (!key.startsWith("on") || key.length < 3) {
-        throw new Error(`Invalid handler: ${key}`);
-    }
-    return key.substr(2, key.length - 2);
-}
 
 export default update;
