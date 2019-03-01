@@ -23,29 +23,43 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
     // TODO: Match unkeyed (key=null) nodes, but resort to LIS if mixed and unmatched keys
     // TODO: must handle insert (old=null) delete (new=null) append (new_index > old_children.length)
     let new_index = 0;
-    let old_index: number = 0;
+    let old_index = 0;
+    let next_index = old_index;
     while (new_index < new_children.length && old_index < old_children.length) {
         const new_child = new_children[new_index];
         const old_child = old_children[old_index];
-        let new_elem: Node | null;
-        if (new_child === null
-            || old_child === null
-            || new_child.key === null
-            || new_child.key !== old_child.key
-            || new_child._type !== old_child._type
-            || new_child._type === VDOM_FRAGMENT
+
+        if (new_child !== null
+            && old_child !== null
+            && (old_child._type === VDOM_FRAGMENT
+                || new_child._type === VDOM_FRAGMENT
+                || old_child.key !== new_child.key)
         ) {
             break;
-        } else {
-            new_elem = update(old_child, new_child, bindpoint, init_queue);
-            if (old_child.elem !== new_elem
-                && old_parent.elem !== null
-                && new_elem !== null
-                && old_child.elem !== null
-            ) {
-                old_parent.elem.replaceChild(new_elem, old_child.elem);
-            }
         }
+
+        const new_elem = update(old_child, new_child, bindpoint, init_queue);
+        const old_elem = old_child === null ? null : old_child.elem;
+        
+        next_index = old_index + 1;
+        while (old_children[next_index] === null && next_index < old_children.length)
+            ++next_index;
+        const next_elem = next_index >= old_children.length
+            ? parent_next_node === null
+                ? null
+                : parent_next_node.elem
+            : old_children[next_index] === null
+                ? null
+                : old_children[next_index]!.elem;
+
+        if (new_elem === null && old_elem !== null) {
+            old_parent.elem.removeChild(old_elem);
+        } else if (new_elem !== null && old_elem === null) {
+            old_parent.elem.insertBefore(new_elem, next_elem)
+        } else if (new_elem !== null && new_elem !== old_elem) {
+            old_parent.elem.replaceChild(new_elem, old_elem!);
+        }
+
         ++new_index;
         ++old_index;
     }
