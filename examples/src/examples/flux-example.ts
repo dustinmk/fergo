@@ -25,9 +25,9 @@ export default () => {
         component: (vdom: VdomFunctional<StorePropType & DirectPropType>) => Vdom
     ) => {
         return (vdom: VdomFunctional<DirectPropType>) => {
-            if (vdom.oninit === undefined) {
-                vdom.oninit = (v) => bound_vdoms.add(v);
-                vdom.onremove = (v) => bound_vdoms.delete(v);
+            if (vdom.attributes.oninit === undefined) {
+                vdom.attributes.oninit = (v) => bound_vdoms.add(v);
+                vdom.attributes.onremove = (v) => bound_vdoms.delete(v);
             }
             return v(component, {props: {...vdom.props, ...map(store)}});
         }

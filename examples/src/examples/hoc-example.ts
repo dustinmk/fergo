@@ -30,7 +30,7 @@ export default () => {
 
             if (vdom.state === null) throw new Error("state is undefined");
             
-            if (instance._type === VDOM_NODE) {
+            if (instance.node_type === VDOM_NODE) {
                 const style = {
                     left: `${vdom.state.x}px`,
                     top: `${vdom.state.y}px`,

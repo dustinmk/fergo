@@ -1,4 +1,4 @@
-import {Vdom, VdomNode, VdomText, VdomFunctional, BindPoint, Attributes, ClassList, Style} from "./vdom";
+import {Vdom, VdomNode, VdomText, VdomFunctional, BindPoint, Attributes, Style} from "./vdom";
 import {
     VDOM_NODE,
     VDOM_FRAGMENT,
@@ -16,7 +16,7 @@ const update = (
     init_queue: Array<VdomNode>
 ): Node | null => {
     if (old_vdom !== null
-        && (new_vdom === null || new_vdom._type !== old_vdom._type)
+        && (new_vdom === null || new_vdom.node_type !== old_vdom.node_type)
     ) {
         updateNullNode(old_vdom);
     } 
@@ -24,19 +24,19 @@ const update = (
     if (new_vdom === null) {
         return null;
 
-    } else if (new_vdom._type === VDOM_FUNCTIONAL) {
+    } else if (new_vdom.node_type === VDOM_FUNCTIONAL) {
         new_vdom.elem = updateFunctionalVdom(old_vdom, new_vdom, init_queue);
         
-    } else if (new_vdom._type === VDOM_TEXT) {
+    } else if (new_vdom.node_type === VDOM_TEXT) {
         new_vdom.elem = updateTextNode(old_vdom, new_vdom);
 
-    } else if (new_vdom._type === VDOM_NODE) {
+    } else if (new_vdom.node_type === VDOM_NODE) {
         if (bindpoint === null) {
             throw new Error("Bindpoint must not be null");
         }
         new_vdom.elem = updateNode(old_vdom, new_vdom, bindpoint, init_queue);
 
-    } else if (new_vdom._type === VDOM_FRAGMENT) {
+    } else if (new_vdom.node_type === VDOM_FRAGMENT) {
         throw new Error("Should not be updating a VdomFragmet");
     }
 
@@ -45,12 +45,12 @@ const update = (
 
 // Called whenever a new vdom is replacing the old one or when it is replaced with null
 const updateNullNode = (old_vdom: Vdom | null) => {
-    if (old_vdom === null || old_vdom._type === VDOM_TEXT) {
+    if (old_vdom === null || old_vdom.node_type === VDOM_TEXT) {
         return;
     }
 
     // Leaf-first order so the leaves still have the parents when called
-    if (old_vdom._type === VDOM_NODE || old_vdom._type === VDOM_FRAGMENT) {
+    if (old_vdom.node_type === VDOM_NODE || old_vdom.node_type === VDOM_FRAGMENT) {
         for (const child of old_vdom.children) {
             if (child !== null) {
                 updateNullNode(child);
@@ -58,9 +58,9 @@ const updateNullNode = (old_vdom: Vdom | null) => {
         }
     }
 
-    if (old_vdom._type === VDOM_FUNCTIONAL && old_vdom.onremove !== undefined) {
-        old_vdom.onremove(old_vdom);
-    } else if (old_vdom._type === VDOM_NODE && old_vdom.attributes.onremove !== undefined) {
+    if (old_vdom.node_type === VDOM_FUNCTIONAL && old_vdom.attributes.onremove !== undefined) {
+        old_vdom.attributes.onremove(old_vdom);
+    } else if (old_vdom.node_type === VDOM_NODE && old_vdom.attributes.onremove !== undefined) {
         old_vdom.attributes.onremove(old_vdom);
     }
 }
@@ -69,13 +69,13 @@ const updateTextNode = (
     old_vdom: Vdom | null,
     new_vdom: VdomText
 ) => {
-    if (old_vdom === null || old_vdom.elem === null || old_vdom._type !== VDOM_TEXT) {
-        return document.createTextNode(new_vdom.text);
+    if (old_vdom === null || old_vdom.elem === null || old_vdom.node_type !== VDOM_TEXT) {
+        return document.createTextNode(new_vdom.value);
 
     } else {
-        if (new_vdom.text !== old_vdom.text) {
+        if (new_vdom.value !== old_vdom.value) {
             // Null check override operator since the TS parser can't figure out that old_vodm.elem is never null here
-            old_vdom.elem!.nodeValue = new_vdom.text;
+            old_vdom.elem!.nodeValue = new_vdom.value;
         }
 
         return old_vdom.elem;
@@ -91,15 +91,15 @@ const updateFunctionalVdom = (
     // Share bindpoint as long as possible across all instances of this vdom
     // The bindpoint should be shared even for different generators since some
     // DOM elements may still be share between instances
-    if (old_vdom !== null && old_vdom._type === VDOM_FUNCTIONAL) {
+    if (old_vdom !== null && old_vdom.node_type === VDOM_FUNCTIONAL) {
         new_vdom.bindpoint = old_vdom.bindpoint;
         new_vdom.bindpoint.binding = new_vdom;
     }
 
     // Update old
     if (old_vdom !== null
-        && old_vdom._type === VDOM_FUNCTIONAL
-        && old_vdom.generator === new_vdom.generator
+        && old_vdom.node_type === VDOM_FUNCTIONAL
+        && old_vdom.value === new_vdom.value
     ) {
         // Reuse state from last time
         // Components can store state in the generator
@@ -124,7 +124,7 @@ const updateFunctionalVdom = (
     } else {
         old_vdom !== null && old_vdom.elem !== null && updateNullNode(old_vdom);
         generateInstance(old_vdom, new_vdom, init_queue);
-        new_vdom.oninit !== undefined && new_vdom.oninit(new_vdom);
+        new_vdom.attributes.oninit !== undefined && new_vdom.attributes.oninit(new_vdom);
     }
 
     if (new_vdom.elem === null) {
@@ -140,18 +140,18 @@ const generateInstance = (
     new_vdom: VdomFunctional<any, any>,
     init_queue: VdomNode[]
 ) => {
-    const generated = new_vdom.generator(new_vdom);
+    const generated = new_vdom.value(new_vdom);
     if (generated !== null) {
         generated.parent = new_vdom;
     }
 
     // Don't update if the same instance is returned as last time
     if (old_vdom === null
-        || old_vdom._type !== VDOM_FUNCTIONAL
+        || old_vdom.node_type !== VDOM_FUNCTIONAL
         || old_vdom.instance !== generated
     ) {
         new_vdom.elem = update(
-            old_vdom !== null && old_vdom._type === VDOM_FUNCTIONAL
+            old_vdom !== null && old_vdom.node_type === VDOM_FUNCTIONAL
                 ? old_vdom.instance
                 : old_vdom,
             generated,
@@ -168,8 +168,8 @@ export const shouldUpdate = <PropType>(
     old_vdom: VdomFunctional<PropType & {[index: string]: any}, any>,
     new_vdom: VdomFunctional<PropType & {[index: string]: any}, any>
 ) => {
-    if (old_vdom.shouldUpdate !== undefined) {
-        return old_vdom.shouldUpdate(old_vdom.props, new_vdom.props, new_vdom.state);
+    if (old_vdom.attributes.shouldUpdate !== undefined) {
+        return old_vdom.attributes.shouldUpdate(old_vdom.props, new_vdom.props, new_vdom.state);
         
     } else if (typeof old_vdom !== typeof new_vdom) {
         return true;
@@ -195,10 +195,10 @@ const updateNode = (
     bindpoint: BindPoint,
     init_queue: VdomNode[]
 ) => {
-    if (old_vdom !== null && old_vdom._type === VDOM_FUNCTIONAL) {
+    if (old_vdom !== null && old_vdom.node_type === VDOM_FUNCTIONAL) {
         return update(old_vdom.instance, new_vdom, bindpoint, init_queue);
 
-    } else if (old_vdom !== null && old_vdom._type === VDOM_NODE && old_vdom.tag === new_vdom.tag) {
+    } else if (old_vdom !== null && old_vdom.node_type === VDOM_NODE && old_vdom.value === new_vdom.value) {
         return patchVdomNode(old_vdom, new_vdom, bindpoint, init_queue);
 
     } else {
@@ -228,18 +228,18 @@ const patchVdomNode = (
         new_vdom.attributes.style === undefined ? {} : new_vdom.attributes.style
     );
 
-    if (new_vdom.children.length === 1 && new_vdom.children[0] !== null && new_vdom.children[0]!._type === VDOM_TEXT) {
+    if (new_vdom.children.length === 1 && new_vdom.children[0] !== null && new_vdom.children[0]!.node_type === VDOM_TEXT) {
 
         // Fastpath for childlist which are a single text node
         if (old_vdom.children.length !== 1
             || old_vdom.children[0] === null
-            || old_vdom.children[0]!._type !== VDOM_TEXT
+            || old_vdom.children[0]!.node_type !== VDOM_TEXT
         ) {
             old_vdom.children.forEach(child => updateNullNode(child));
             // This implicitly removes DOM children
-            old_vdom.elem.textContent = (new_vdom.children[0] as VdomText).text;
-        } else if ((old_vdom.children[0]! as VdomText).text !== (new_vdom.children[0]! as VdomText).text) {
-            old_vdom.elem.textContent = (new_vdom.children[0] as VdomText).text;
+            old_vdom.elem.textContent = (new_vdom.children[0] as VdomText).value;
+        } else if ((old_vdom.children[0]! as VdomText).value !== (new_vdom.children[0]! as VdomText).value) {
+            old_vdom.elem.textContent = (new_vdom.children[0] as VdomText).value;
         }
         
         new_vdom.children[0]!.elem = old_vdom.elem.firstChild;
@@ -251,15 +251,15 @@ const patchVdomNode = (
 }
 
 const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint, init_queue: VdomNode[]) => {
-    if (vdom.tag === "") {
+    if (vdom.value === "") {
         throw new Error("Invalid tag");
     }
 
     const elem = vdom.namespace === null
-        ? document.createElement(vdom.tag)
-        : document.createElementNS(vdom.namespace, vdom.tag);
+        ? document.createElement(vdom.value)
+        : document.createElementNS(vdom.namespace, vdom.value);
 
-    patchClasses(elem, {}, vdom.classes);
+    patchClasses(elem, "", vdom.classes);
     vdom.attributes.style !== undefined && vdom.namespace === null && patchStyle(<HTMLElement>elem, {}, vdom.attributes.style);
     patchAttributes(elem, {}, vdom.attributes, bindpoint);
 
@@ -274,14 +274,14 @@ const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint, init_queue: Vdo
 }
 
 const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPoint, init_queue: VdomNode[]) => {
-    if (vdoms.length === 1 && vdoms[0] !== null && vdoms[0]!._type === VDOM_TEXT) {
-        elem.textContent = (vdoms[0] as VdomText).text;
+    if (vdoms.length === 1 && vdoms[0] !== null && vdoms[0]!.node_type === VDOM_TEXT) {
+        elem.textContent = (vdoms[0] as VdomText).value;
         (vdoms[0] as VdomText).elem = elem.firstChild;
         return;
     }
 
     for (const child of vdoms) {
-        if (child !== null && child._type === VDOM_FRAGMENT) {
+        if (child !== null && child.node_type === VDOM_FRAGMENT) {
             createChildren(elem, child.children, bindpoint, init_queue);
 
         } else {
@@ -295,16 +295,12 @@ const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPo
     }
 }
 
-const patchClasses = (elem: Element, old_classes: ClassList, new_classes: ClassList) => {
-    for (const c in new_classes) {
-        if ( old_classes[c] === undefined ) {
-            elem.classList.add(c);
-        }
-    }
-
-    for (const c in old_classes) {
-        if ( new_classes[c] === undefined ) {
-            elem.classList.remove(c);
+const patchClasses = (elem: Element, old_classes: string, new_classes: string) => {
+    if (old_classes !== new_classes) {
+        if (new_classes.length === 0) {
+            elem.removeAttribute("class");
+        } else {
+            elem.setAttribute("class", new_classes);
         }
     }
 }

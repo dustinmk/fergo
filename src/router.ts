@@ -28,7 +28,7 @@ export const router = (routes: {[index: string]: Router | RouteComponent}, defau
         parent_path: [],
         view: v((vdom: VdomFunctional<Path>) => {
             if (vdom.instance === null) {
-                vdom.shouldUpdate = shouldUpdate;
+                vdom.attributes.shouldUpdate = shouldUpdate;
                 vdom.props = {path: instance.path};
             }
             const component = resolve(instance, {path: instance.path});

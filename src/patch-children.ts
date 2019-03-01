@@ -31,8 +31,8 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
 
         if (new_child !== null
             && old_child !== null
-            && (old_child._type === VDOM_FRAGMENT
-                || new_child._type === VDOM_FRAGMENT
+            && (old_child.node_type === VDOM_FRAGMENT
+                || new_child.node_type === VDOM_FRAGMENT
                 || old_child.key !== new_child.key)
         ) {
             break;
@@ -145,7 +145,7 @@ const findFragmentInsertPoint = (next_index: number, old_children: Array<Vdom | 
     while (next_index < old_children.length) {
         const candidate = old_children[next_index++];
 
-        if (candidate !== null && candidate._type === VDOM_FRAGMENT) {
+        if (candidate !== null && candidate.node_type === VDOM_FRAGMENT) {
             return findFragmentInsertPoint(0, candidate.children);
 
         } else if (candidate !== null && candidate.parent !== null) {
@@ -157,7 +157,7 @@ const findFragmentInsertPoint = (next_index: number, old_children: Array<Vdom | 
 }
 
 const isFragment = (vdom: Vdom | null): vdom is VdomFragment => {
-    return vdom !== null && vdom._type === VDOM_FRAGMENT;
+    return vdom !== null && vdom.node_type === VDOM_FRAGMENT;
 }
 
 const clearExtraNodes = (old_parent: Vdom, old_children: Array<Vdom | null>, keyed: Keyed, unkeyed: Unkeyed) => {
@@ -250,8 +250,8 @@ const patchElements = (
         }
 
         // Filter out fragments
-        if ( (new_vdom !== null && new_vdom._type === VDOM_FRAGMENT)
-            || (old_vdom !== null && old_vdom._type === VDOM_FRAGMENT)
+        if ( (new_vdom !== null && new_vdom.node_type === VDOM_FRAGMENT)
+            || (old_vdom !== null && old_vdom.node_type === VDOM_FRAGMENT)
          ) {
             ++new_index;
             ++old_index;
@@ -298,7 +298,7 @@ const patchElements = (
 
 const keyOf = (vdom: Vdom | null) => 
     vdom !== null
-        && (vdom._type === VDOM_FUNCTIONAL || vdom._type === VDOM_NODE)
+        && (vdom.node_type === VDOM_FUNCTIONAL || vdom.node_type === VDOM_NODE)
         && vdom.key !== undefined
     ? vdom.key
     : null;

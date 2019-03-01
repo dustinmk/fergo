@@ -13,9 +13,11 @@ export const initializeWith = <PropsType, StateType>(
     return (vdom: VdomFunctional<PropsType, StateType>) => {
         if (vdom.state === undefined || vdom.state === null) {
             vdom.state = init.state();
-            vdom.shouldUpdate = init.shouldUpdate;
-            vdom.oninit = init.oninit;
-            vdom.onremove = init.onremove;
+            vdom.attributes = {
+                shouldUpdate : init.shouldUpdate,
+                oninit: init.oninit,
+                onremove: init.onremove
+            }
         }
 
         return generator(vdom);

@@ -36,7 +36,7 @@ const handleFrame = () => {
 // Synchronous redraw
 export const redrawSync = (vdom: Vdom) => {
     // Propagate redraw() up to closest functional vnode
-    if (vdom === null || vdom._type !== VDOM_FUNCTIONAL) {
+    if (vdom === null || vdom.node_type !== VDOM_FUNCTIONAL) {
         if (vdom === null || vdom.parent === null) {
             throw new Error("Root element must be a functional vdom");
         }
@@ -52,7 +52,7 @@ export const redrawSync = (vdom: Vdom) => {
         // Force an update, ignoring if the same instance is returned
         // Only do this at the top level of a redraw cycle
         const init_queue: VdomNode[] = [];
-        const generated = vdom.generator(vdom);
+        const generated = vdom.value(vdom);
         vdom.elem = update(vdom.instance, generated, vdom.bindpoint, init_queue);
         vdom.instance = generated;
         if (generated !== null) {
@@ -78,7 +78,7 @@ export const redrawSync = (vdom: Vdom) => {
         // Can't just redraw from top of chain because props might not change on children
         // so the forced redraw won't work
         let parent_vdom = vdom.parent;
-        while (parent_vdom !== null && parent_vdom._type === VDOM_FUNCTIONAL) {
+        while (parent_vdom !== null && parent_vdom.node_type === VDOM_FUNCTIONAL) {
             parent_vdom.elem = vdom.elem;
             parent_vdom = parent_vdom.parent;
         }

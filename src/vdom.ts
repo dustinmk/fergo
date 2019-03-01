@@ -11,17 +11,30 @@ import {
 } from "./constants";
 
 interface VdomBase {
+    node_type: T_VDOM_NODE | T_VDOM_FRAGMENT | T_VDOM_TEXT | T_VDOM_FUNCTIONAL;
     parent: Vdom | null;
     elem: Node | null;
+    value: string | VdomGenerator<any, any> | null;
     key: any;
+    attributes?: VdomFunctionalHooks<any, any> | (CustomAttr & Attributes);
+    classes: string;
+    children: Array<Vdom | null>;
+    namespace: string | null;
+    instance: Vdom | null;
+    state: any;
+    props: any;
+    bindpoint: undefined | BindPoint;
 }
 
-export interface VdomFunctional<PropType, StateType = {}>
-    extends VdomBase, ComponentAttributes<PropType, StateType>
+export interface VdomFunctional<PropType = {}, StateType = {}>
+    extends VdomBase
 {
-    _type: T_VDOM_FUNCTIONAL;
-    generator: VdomGenerator<any, any>;
+    node_type: T_VDOM_FUNCTIONAL;
+    value: VdomGenerator<PropType, StateType>;
     instance: Vdom | null;
+    props: PropType;
+    state: StateType;
+    attributes: VdomFunctionalHooks<PropType, StateType>;
 
     // A child functional component can have many instances generated before its
     // parent generates again. Each instance may have passed itself to event handlers.
@@ -30,15 +43,23 @@ export interface VdomFunctional<PropType, StateType = {}>
     // Otherwise, each previous instance must have its parent set. This bindpoint is
     // shared across all instances of a functional component and it has its binding
     // reset to the current node for every redraw()
-    bindpoint: BindPoint;
+
+    bindpoint: BindPoint;   // TODO: Make linked list instead of object: set old_vdom.next to new_vdom
+    // TODO: Also remove parent because VF can get parent elem in redraw from elem itself
 }
 
-export interface ComponentAttributes<PropType = {}, StateType = {}> {
-    _type?: T_VDOM_FUNCTIONAL;
-    props: PropType;
-    state: StateType;
-    key: any;
-    children: Array<Vdom | null>;
+export interface VdomFunctionalHooks<PropType, StateType> {
+    shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
+    oninit?: (vdom: VdomFunctional<PropType, StateType>) => void;
+    onremove?: (vdom: VdomFunctional<PropType, StateType>) => void;
+}
+
+export interface FunctionalAttributes<PropType = {}, StateType = {}> {
+    node_type?: string;
+    props?: PropType;
+    state?: StateType;
+    key?: any;
+    children?: Array<Vdom | null>;
     shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean;
     oninit?: (vdom: VdomFunctional<PropType, StateType>) => void;
     onremove?: (vdom: VdomFunctional<PropType, StateType>) => void;
@@ -47,25 +68,18 @@ export interface ComponentAttributes<PropType = {}, StateType = {}> {
 export type VdomFunctionalNotInit<PropType, StateType = {}> =
     VdomFunctional<PropType, StateType> 
     & { state: StateType | null };
-    
-export type VdomFunctionalAttributes<PropType, StateType>
-    = Partial<ComponentAttributes<PropType, StateType>>
 
 export interface BindPoint {
     binding: VdomFunctional<any, any>;
 }
 
 export interface VdomNode extends VdomBase {
-    _type: T_VDOM_NODE;
-    tag: string;
+    node_type: T_VDOM_NODE;
+    value: string;
     attributes: CustomAttr & Attributes;
-    classes: ClassList;
+    classes: string;
     children: Array<Vdom | null>;
     namespace: string | null;
-}
-
-export interface ClassList {
-    [index: string]: string;
 }
 
 export interface Style {
@@ -73,19 +87,19 @@ export interface Style {
 }
 
 export interface VdomFragment extends VdomBase {
-    _type: T_VDOM_FRAGMENT;
+    node_type: T_VDOM_FRAGMENT;
     children: Array<Vdom | null>;
 }
 
 export interface VdomText extends VdomBase {
-    _type: T_VDOM_TEXT;
-    text: string;
+    node_type: T_VDOM_TEXT;
+    value: string;
 }
 
 export type Vdom = VdomNode | VdomFragment | VdomFunctional<any, any> | VdomText;
 
 export interface Attributes {
-    _type?: undefined;
+    node_type?: undefined;
     key?: any;
     style?: Style;
     namespace?: string;
@@ -103,7 +117,7 @@ export type VdomGenerator<PropType, StateType>
 
 type ChildBase = Vdom | VdomGenerator<any, any> | string | null | boolean;
 interface ChildArray {
-    _type?: undefined;
+    node_type?: undefined;
     [index: number]: ChildBase | ChildArray;
 }
 type Child = ChildBase | ChildArray;
@@ -114,12 +128,12 @@ export function v(selector: string, children: Child): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child): Vdom;
 export function v<PropType, StateType>(
     selector: VdomGenerator<PropType, StateType>,
-    props?: VdomFunctionalAttributes<PropType, StateType>,
+    props?: FunctionalAttributes<PropType, StateType>,
     children?: Child
 ): Vdom;
 export function v<PropType, StateType>(
     selector: string | VdomGenerator<PropType, StateType>,
-    arg1?: CustomAttr & Attributes | Child | VdomFunctionalAttributes<PropType, StateType>,
+    arg1?: CustomAttr & Attributes | Child | FunctionalAttributes<PropType, StateType>,
     arg2?: Child
 ): Vdom {
 
@@ -127,34 +141,24 @@ export function v<PropType, StateType>(
     if(typeof selector === "function") {
         const attr = isFunctionalAttributes(arg1)
             ? arg1
-            : {} as VdomFunctionalAttributes<PropType, StateType>;
-        let vdom = {
-            _type: VDOM_FUNCTIONAL,
-            parent: null,
-            elem: null,
-            generator: selector,
-            instance: null,
-            state: attr.state === undefined ? null : attr.state,
-            props: attr.props,
-            children: arg2 === undefined
+            : {} as FunctionalAttributes<PropType, StateType>;
+        return makeVdomFunctional(
+            null,
+            selector,
+            attr.state === undefined ? null : attr.state,
+            attr.props,
+            attr.key === undefined ? null : attr.key,
+            arg2 === undefined
                 ? attr.children === undefined
                     ? []
                     : attr.children
                 : Array.isArray(arg2)
                     ? arg2
                     : [arg2],
-            bindpoint: undefined as BindPoint | undefined,
-            key: attr.key === undefined ? null : attr.key,
-            shouldUpdate: attr.shouldUpdate,
-            oninit: attr.oninit,
-            onremove: attr.onremove
-        };
-
-        vdom.bindpoint = {
-            binding: (vdom as unknown) as VdomFunctional<PropType, StateType>
-        };
-
-        return vdom as VdomFunctional<PropType, StateType>;
+            attr.shouldUpdate,
+            attr.oninit,
+            attr.onremove
+        );
     }
 
     // Standardize arguments for v_impl()
@@ -167,7 +171,7 @@ export function v<PropType, StateType>(
         children = [arg1];
     } else if (arg1 instanceof Array) {
         children = arg1;
-    } else if (arg1 !== null && typeof arg1 === "object" && arg1._type !== undefined && (arg1._type === VDOM_NODE || arg1._type === VDOM_FUNCTIONAL)) {
+    } else if (arg1 !== null && typeof arg1 === "object" && arg1.node_type !== undefined && (arg1.node_type === VDOM_NODE || arg1.node_type === VDOM_FUNCTIONAL)) {
         children = [arg1 as VdomNode];
     } else if (arg1 !== null && typeof arg1 === "object") {
         attributes = arg1;
@@ -177,42 +181,20 @@ export function v<PropType, StateType>(
 
     if (arg2 instanceof Array) {
         children = arg2;
-    } else if (typeof arg2 === "string" || typeof arg2 === "function" || (typeof arg2 === "object" && arg2 !== null && arg2._type !== undefined)) {
+    } else if (typeof arg2 === "string" || typeof arg2 === "function" || (typeof arg2 === "object" && arg2 !== null && arg2.node_type !== undefined)) {
         children = [arg2];
     }
 
-    return v_impl(selector, attributes, children);
+    return makeVdomNode(selector, attributes, children) as Vdom;
 }
 
 function isFunctionalAttributes<PropType, StateType>(
-    arg?: CustomAttr & Attributes | Child[] | Child | VdomFunctionalAttributes<PropType, StateType>
-): arg is VdomFunctionalAttributes<PropType, StateType> {
+    arg?: CustomAttr & Attributes | Child[] | Child | FunctionalAttributes<PropType, StateType>
+): arg is FunctionalAttributes<PropType, StateType> {
     return arg !== undefined
         && typeof arg === "object"
         && !Array.isArray(arg)
         && arg !== null
-}
-
-function v_impl(selector: string, attributes: CustomAttr & Attributes, children: Child[]): Vdom {
-
-    // Create the vdom
-    const {id, tag, classes} = splitSelector(selector);
-    const vdom: VdomNode = {
-        _type: VDOM_NODE,
-        parent: null,
-        tag: tag,
-        key: attributes.key === undefined ? null : attributes.key,
-        classes: classes,
-        attributes: id === undefined ? attributes : {...attributes, id},
-        children: [],
-        elem: null,
-        namespace: attributes.namespace === undefined ? null : attributes.namespace
-    };
-
-    // Add the children in
-    vdom.children = children.map(child => childToVdom(child, vdom));
-
-    return vdom;
 }
 
 const childToVdom = (child: Child, parent: Vdom) => {
@@ -223,43 +205,13 @@ const childToVdom = (child: Child, parent: Vdom) => {
     }
 
     else if (typeof child === "string") {
-        return {
-            _type: VDOM_TEXT,
-            parent: parent,
-            text: child,
-            elem: null,
-            key: null
-        } as VdomText;
+        return makeVdomText(parent, child);
 
     } else if(typeof child === "function") {
-        const functional_vdom = {
-            _type: VDOM_FUNCTIONAL,
-            parent: parent,
-            elem: null,
-            generator: child,
-            instance: null,
-            state: null,
-            initial_state: null,
-            props: undefined,
-            children: [],
-            key: null,
-            bindpoint: undefined as BindPoint | undefined
-        };
-
-        functional_vdom.bindpoint = {binding: functional_vdom as VdomFunctional<undefined, null>};
-        return functional_vdom as VdomFunctional<undefined, null>;
+        return makeVdomFunctional(parent, child, null, null, null, []);
 
     } else if (Array.isArray(child)) {
-        const vdom: VdomFragment = {
-            _type: VDOM_FRAGMENT,
-            parent: parent,
-            children: [],
-            elem: null,
-            key: null
-        };
-
-        vdom.children = child.map(fragment_child => childToVdom(fragment_child, vdom));
-        return vdom;
+        return makeVdomFragment(parent, child);
 
     // If a vdom was already created through v(), just bind the parent
     // Children must be unique so they can store state and elems
@@ -268,9 +220,13 @@ const childToVdom = (child: Child, parent: Vdom) => {
     // once in the new one. It is hard to determine if this is the case is the parent is set,
     // and reusing instantiated vdoms is an uncommon use case, so copying is the best
     // course of action.
-    }  else if (child._type !== undefined) {
-        if (child._type !== VDOM_FUNCTIONAL) {
-            return copyVdom(child, parent);
+    }  else if (child.node_type !== undefined) {
+        if (child.node_type !== VDOM_FUNCTIONAL) {
+            if (child.parent !== null || child.elem !== null) return copyVdom(child, parent);
+            else {
+                child.parent = parent;
+                return child;
+            }
 
         } else {
             // The user may store a reference to the original child and call redraw()
@@ -279,9 +235,9 @@ const childToVdom = (child: Child, parent: Vdom) => {
             // handlers to resolve this. redraw() will redraw on the bound vdom. All
             // copies of the original vdom instance will share the same binding instance,
             // so they all point to the current copy.
-            const new_child: VdomFunctional<any, any> = {...child};
+            const new_child: VdomFunctional<any, any> = copyV(child) as VdomFunctional<any, any>;
             new_child.parent = parent;
-            child.bindpoint.binding = new_child;
+            if (child.bindpoint !== undefined) child.bindpoint.binding = new_child;
             child.parent = parent;
             child.elem = null;  // Safeguard against memory leaks
             child.instance = null;
@@ -291,8 +247,10 @@ const childToVdom = (child: Child, parent: Vdom) => {
             }
             return new_child;
         }
+    } else if (child.node_type !== undefined) {
+        return child;
     } else {
-        throw new Error("Invalid child type.");
+        throw new Error("child.node_type undefined")
     }
 }
 
@@ -306,13 +264,11 @@ const copyVdom = (vdom: Vdom | null, parent: Vdom) => {
         return vdom;
     }
 
-    const copy = {
-        ...vdom,
-        parent
-    }
+    const copy = copyV(vdom);
+    copy.parent = parent;
 
-    if (copy._type === VDOM_NODE) {
-        copy.children = copy.children.map(child => copyVdom(child, copy))
+    if (copy.node_type === VDOM_NODE) {
+        copy.children = copy.children.map(child => copyVdom(child, copy as Vdom) as Vdom | null)
     }
 
     return copy;
@@ -321,7 +277,8 @@ const copyVdom = (vdom: Vdom | null, parent: Vdom) => {
 interface SplitSelector {
     id: string | undefined;
     tag: string;
-    classes: ClassList;
+    class_acc: string[];
+    classes: string;
 }
 
 enum SelectorState {
@@ -340,7 +297,7 @@ const placeToken = (token: string, state: SelectorState, split_selector: SplitSe
     } else if (state === SelectorState.TAG) {
         split_selector.tag = token;
     } else {
-        split_selector.classes[token] = token;
+        split_selector.class_acc.push(token);
     }
 }
 
@@ -350,7 +307,8 @@ export const splitSelector = (selector: string) => {
     const split_selector = {
         id: undefined,
         tag: "div",
-        classes: {}
+        class_acc: [],
+        classes: ""
     }
 
     let token_start = 0;
@@ -370,6 +328,145 @@ export const splitSelector = (selector: string) => {
     }
     placeToken(selector.substring(token_start, index), state, split_selector);
 
+    split_selector.classes = split_selector.class_acc.join(" ");
     return split_selector;
 }
 
+const makeVdomFunctional = <PropType, StateType>(
+    parent: Vdom | null,
+    generator: VdomGenerator<PropType, StateType>,
+    state: StateType | null,
+    props: PropType | undefined,
+    key: any,
+    children: Child[],
+    shouldUpdate?: (old_props: PropType, new_props: PropType, state: StateType) => boolean,
+    oninit?: (vdom: VdomFunctional<PropType, StateType>) => void,
+    onremove?: (vdom: VdomFunctional<PropType, StateType>) => void,
+) => {
+    const v = new V(
+        VDOM_FUNCTIONAL,
+        parent,
+        generator,
+        key,
+        {
+            shouldUpdate: shouldUpdate,
+            oninit: oninit,
+            onremove: onremove
+        },
+        "",
+        children,
+        null,
+        state,
+        props
+    )
+
+    v.bindpoint = {binding: v as VdomFunctional<PropType, StateType>};
+    return v as VdomFunctional<PropType, StateType>;
+}
+
+const makeVdomNode = (selector: string, attributes: Attributes, children: Child[]) => {
+    const {id, tag, classes} = splitSelector(selector);
+    return new V(
+        VDOM_NODE,
+        null,
+        tag,
+        attributes.key === undefined ? null : attributes.key,
+        id === undefined ? attributes : {...attributes, id},
+        classes,
+        children,
+        attributes.namespace === undefined ? null : attributes.namespace,
+        null,
+        null
+    )
+}
+
+const makeVdomText = (parent: Vdom, text: string) => {
+    return new V(
+        VDOM_TEXT,
+        parent,
+        text,
+        null,
+        {},
+        "",
+        [],
+        null,
+        null,
+        null
+    ) as Vdom
+}
+
+const makeVdomFragment = (parent: Vdom, children: Array<Child>) => {
+    return new V(
+        VDOM_FRAGMENT,
+        parent,
+        null,
+        null,
+        {},
+        "",
+        children,
+        null,
+        null,
+        null
+    );
+}
+
+class V {
+    node_type: T_VDOM_NODE | T_VDOM_FRAGMENT | T_VDOM_TEXT | T_VDOM_FUNCTIONAL;
+    parent: Vdom | null;
+    elem: Node | null;
+    value: string | VdomGenerator<any, any> | null;
+    key: any;
+    attributes?: VdomFunctionalHooks<any, any> | (CustomAttr & Attributes);
+    classes: string;
+    children: Array<Vdom | null>;
+    namespace: string | null;
+    instance: Vdom | null;
+    state: any;
+    props: any;
+    bindpoint: undefined | BindPoint;
+
+    constructor(
+        node_type: T_VDOM_NODE | T_VDOM_FRAGMENT | T_VDOM_TEXT | T_VDOM_FUNCTIONAL,
+        parent: Vdom | null,
+        value: string | VdomGenerator<any, any> | null,
+        key: any,
+        attributes: any,
+        classes: string,
+        children: Child[],
+        namespace: null | string,
+        state: any,
+        props: any,
+    ) {
+        this.node_type = node_type;
+        this.parent = parent;
+        this.elem = null;
+        this.value = value;
+        this.key = key;
+        this.attributes = attributes;
+        this.classes = classes;
+        this.children = children.map(child => childToVdom(child, this as Vdom)) as Array<Vdom | null>; 
+        this.namespace = namespace;
+        this.instance = null;
+        this.state = state;
+        this.props = props;
+        this.bindpoint = undefined as BindPoint | undefined;
+    }
+}
+
+const copyV = (v: V) => {
+    const n = new V(
+        v.node_type,
+        v.parent,
+        v.value,
+        v.key,
+        v.attributes,
+        v.classes,
+        v.children,
+        v.namespace,
+        v.state,
+        v.props);
+    n.elem = v.elem;
+    n.instance = v.instance;
+    n.bindpoint = v.bindpoint;
+    return n;
+}
