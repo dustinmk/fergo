@@ -37,15 +37,15 @@ const handleFrame = () => {
 export const redrawSync = (vdom: Vdom) => {
     // Propagate redraw() up to closest functional vnode
     if (vdom === null || vdom.node_type !== VDOM_FUNCTIONAL) {
-        if (vdom.updated !== null) {
-            redrawSync(vdom.updated);
+        if (vdom.binding.bindpoint !== null) {
+            redrawSync(vdom.binding.bindpoint);
         } else {
             throw new Error("Can only redraw on functional vdoms");
         }
 
     // If the vdom is an old instance, redraw the current instance
-    } else if (vdom.updated !== null) {
-        redrawSync(vdom.updated);
+    } else if (vdom.binding.bindpoint !== vdom && vdom.binding.bindpoint !== null) {
+        redrawSync(vdom.binding.bindpoint);
 
     } else {
         const old_elem = vdom.elem;
@@ -54,7 +54,7 @@ export const redrawSync = (vdom: Vdom) => {
         // Only do this at the top level of a redraw cycle
         const init_queue: VdomNode[] = [];
         const generated = vdom.value(vdom);
-        vdom.elem = update(vdom.instance, generated, vdom, init_queue);
+        vdom.elem = update(vdom.instance, generated, vdom.binding, init_queue);
         vdom.instance = generated;
         if (generated !== null) {
             generated.mounted = true;

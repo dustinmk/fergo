@@ -1,4 +1,4 @@
-import {Vdom, VdomFragment, VdomNode} from "./vdom";
+import {Vdom, VdomFragment, VdomNode, BindPoint} from "./vdom";
 import {
     VDOM_NODE,
     VDOM_FRAGMENT,
@@ -14,7 +14,7 @@ interface Unkeyed {
     items: Array<number>;
 }
 
-export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: Vdom, init_queue: VdomNode[]) => {
+export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: BindPoint | null, init_queue: VdomNode[]) => {
     if (old_parent === null || old_parent.elem === null) {
         throw new Error("Parent node must not be null");
     }
@@ -96,7 +96,7 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
     
 }
 
-const reconcileWithLIS = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: Vdom, init_queue: VdomNode[]) => {
+const reconcileWithLIS = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: BindPoint | null, init_queue: VdomNode[]) => {
     if (old_parent.elem === null) {
         throw new Error("Old parent elem must exist");
     }

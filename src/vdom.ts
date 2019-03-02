@@ -23,7 +23,7 @@ interface VdomBase {
     instance: Vdom | null;
     state: any;
     props: any;
-    updated: Vdom | null;
+    binding: BindPoint
 }
 
 export interface VdomFunctional<PropType = {}, StateType = {}>
@@ -44,8 +44,11 @@ export interface VdomFunctional<PropType = {}, StateType = {}>
     // shared across all instances of a functional component and it has its binding
     // reset to the current node for every redraw()
 
-    updated: Vdom | null;   // TODO: Make linked list instead of object: set old_vdom.next to new_vdom
-    // TODO: Also remove parent because VF can get parent elem in redraw from elem itself
+    binding: BindPoint
+}
+
+export interface BindPoint {
+    bindpoint: VdomFunctional<any, any> | null
 }
 
 export interface VdomFunctionalHooks<PropType, StateType> {
@@ -242,11 +245,11 @@ const childToVdom = (child: Child) => {
             // TODO: Prevent copy if not needed
             const new_child: VdomFunctional<any, any> = copyV(child) as VdomFunctional<any, any>;
             new_child.mounted = true;
-            child.updated = new_child;
+            child.binding.bindpoint = new_child;
             child.mounted = true;
             child.elem = null;  // Safeguard against memory leaks
             child.instance = null;
-            new_child.updated = null;
+            new_child.binding = {bindpoint: new_child};
             if (child.state !== undefined && child.state !== null && typeof child.state === "object") {
                 child.state = {...child.state}
             }
@@ -363,6 +366,8 @@ const makeVdomFunctional = <PropType, StateType>(
         props
     )
 
+    v.binding.bindpoint = v as VdomFunctional;
+
     return v as VdomFunctional<PropType, StateType>;
 }
 
@@ -422,7 +427,7 @@ class V {
     instance: Vdom | null;
     state: any;
     props: any;
-    updated: null | Vdom;
+    binding: BindPoint;
 
     constructor(
         node_type: T_VDOM_NODE | T_VDOM_FRAGMENT | T_VDOM_TEXT | T_VDOM_FUNCTIONAL,
@@ -447,7 +452,7 @@ class V {
         this.instance = null;
         this.state = state;
         this.props = props;
-        this.updated = null;
+        this.binding = {bindpoint: null}
     }
 }
 
@@ -464,7 +469,7 @@ const copyV = (v: V) => {
         v.props);
     n.elem = v.elem;
     n.instance = v.instance;
-    n.updated = v.updated;
+    n.binding = v.binding;
     return n;
 }
 
