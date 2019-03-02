@@ -37,7 +37,11 @@ const handleFrame = () => {
 export const redrawSync = (vdom: Vdom) => {
     // Propagate redraw() up to closest functional vnode
     if (vdom === null || vdom.node_type !== VDOM_FUNCTIONAL) {
-        throw new Error("Can only redraw on functional vdoms");
+        if (vdom.updated !== null) {
+            redrawSync(vdom.updated);
+        } else {
+            throw new Error("Can only redraw on functional vdoms");
+        }
 
     // If the vdom is an old instance, redraw the current instance
     } else if (vdom.updated !== null) {

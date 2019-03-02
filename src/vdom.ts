@@ -202,13 +202,19 @@ const childToVdom = (child: Child) => {
     }
 
     else if (typeof child === "string") {
-        return makeVdomText(child);
+        const v = makeVdomText(child);
+        v.mounted = true;
+        return v;
 
     } else if(typeof child === "function") {
-        return makeVdomFunctional(child, null, null, null, []);
+        const v = makeVdomFunctional(child, null, null, null, []);
+        v.mounted = true;
+        return v;
 
     } else if (Array.isArray(child)) {
-        return makeVdomFragment(child);
+        const v = makeVdomFragment(child);
+        v.mounted = true;
+        return v;
 
     // If a vdom was already created through v(), just bind the parent
     // Children must be unique so they can store state and elems

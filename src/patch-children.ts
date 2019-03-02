@@ -236,7 +236,7 @@ const patchElements = (
     while(new_index < new_vdoms.length) {
         let old_vdom: Vdom | null = old_index < old_vdoms.length ? old_vdoms[old_index] : null;
         const new_vdom = new_vdoms[new_index];
-        const matching_index = matching_vdoms[new_index];
+        const matching_index = new_index >= matching_vdoms.length ? -1 : matching_vdoms[new_index];
         const matching_vdom = matching_index === -1 ? null : old_vdoms[matching_index];
         const lis_vdom = lis_index < lis_indices.length ? old_vdoms[lis_indices[lis_index]] : null;
         const old_node = old_vdom === null ? null : old_vdom.elem;

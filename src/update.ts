@@ -33,6 +33,7 @@ const update = (
     } else if (new_vdom.node_type === VDOM_NODE) {
         if (bindpoint === null) throw new Error("Bindpoint must not be null");
         new_vdom.elem = updateNode(old_vdom, new_vdom, bindpoint, init_queue);
+        new_vdom.updated = bindpoint;
 
     } else if (new_vdom.node_type === VDOM_FRAGMENT) {
         throw new Error("Should not be updating a VdomFragmet");
