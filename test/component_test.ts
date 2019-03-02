@@ -317,4 +317,6 @@ describe("Components", () => {
             v("p", "2")
         ]))
     })
+
+    // TODO: Test redraws at different points on chained functional vdoms
 })

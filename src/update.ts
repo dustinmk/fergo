@@ -110,8 +110,15 @@ const updateFunctionalVdom = (
             && !shouldUpdate(old_vdom, new_vdom)
         ) {
             new_vdom.instance = old_vdom.instance;
-            if(new_vdom.instance !== null) new_vdom.instance.mounted = true
-            new_vdom.elem = old_vdom.elem;
+            if(new_vdom.instance !== null) new_vdom.instance.mounted = true;
+
+            // Drill down to first instance in case of deep nested functional vdoms
+            let elem_vdom: Vdom | null = old_vdom;
+            while(elem_vdom !== null && elem_vdom.node_type === VDOM_FUNCTIONAL)
+                elem_vdom = elem_vdom.instance;
+            if (elem_vdom === null || elem_vdom.elem === null) throw new Error("Instance cannot be null");
+            new_vdom.elem = elem_vdom.elem;
+            
             return new_vdom.elem;
 
         // Otherwise, redraw
