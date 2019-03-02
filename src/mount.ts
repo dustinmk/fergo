@@ -13,7 +13,7 @@ export const mount = (elem: HTMLElement, vdom: Vdom | VdomGenerator<any, any>)  
 
     else {
         const init_queue: VdomNode[] = [];
-        vdom.elem = update(null, vdom, vdom.bindpoint, init_queue);
+        vdom.elem = update(null, vdom, vdom, init_queue);
         
         if (vdom.elem === null) {
             throw new Error("Vdom element could not be created");

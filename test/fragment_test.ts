@@ -50,7 +50,7 @@ describe("Fragments", () => {
         expect(document.querySelectorAll("p")).to.have.text(["7", "6", "5", "4", "3", "2", "1", "8", "9"])
     })
 
-    it("replaces element with fragment and nested fragment with fragment", () => {
+    it.only("replaces element with fragment and nested fragment with fragment", () => {
         let toggle = true;
         const root = v(() => v("div", toggle
             ? [

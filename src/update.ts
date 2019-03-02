@@ -1,4 +1,4 @@
-import {Vdom, VdomNode, VdomText, VdomFunctional, BindPoint, Attributes, Style} from "./vdom";
+import {Vdom, VdomNode, VdomText, VdomFunctional,  Attributes, Style} from "./vdom";
 import {
     VDOM_NODE,
     VDOM_FRAGMENT,
@@ -12,7 +12,7 @@ import {patchChildren} from "./patch-children";
 const update = (
     old_vdom: Vdom | null,
     new_vdom: Vdom | null,
-    bindpoint: BindPoint | null,
+    bindpoint: Vdom | null,
     init_queue: Array<VdomNode>
 ): Node | null => {
     if (old_vdom !== null
@@ -31,9 +31,7 @@ const update = (
         new_vdom.elem = updateTextNode(old_vdom, new_vdom);
 
     } else if (new_vdom.node_type === VDOM_NODE) {
-        if (bindpoint === null) {
-            throw new Error("Bindpoint must not be null");
-        }
+        if (bindpoint === null) throw new Error("Bindpoint must not be null");
         new_vdom.elem = updateNode(old_vdom, new_vdom, bindpoint, init_queue);
 
     } else if (new_vdom.node_type === VDOM_FRAGMENT) {
@@ -92,8 +90,7 @@ const updateFunctionalVdom = (
     // The bindpoint should be shared even for different generators since some
     // DOM elements may still be share between instances
     if (old_vdom !== null && old_vdom.node_type === VDOM_FUNCTIONAL) {
-        new_vdom.bindpoint = old_vdom.bindpoint;
-        new_vdom.bindpoint.binding = new_vdom;
+        old_vdom.updated = new_vdom;
     }
 
     // Update old
@@ -111,7 +108,7 @@ const updateFunctionalVdom = (
             && !shouldUpdate(old_vdom, new_vdom)
         ) {
             new_vdom.instance = old_vdom.instance;
-            if(new_vdom.instance !== null) new_vdom.instance.parent = new_vdom;
+            if(new_vdom.instance !== null) new_vdom.instance.mounted = true
             new_vdom.elem = old_vdom.elem;
             return new_vdom.elem;
 
@@ -142,7 +139,7 @@ const generateInstance = (
 ) => {
     const generated = new_vdom.value(new_vdom);
     if (generated !== null) {
-        generated.parent = new_vdom;
+        generated.mounted = true;
     }
 
     // Don't update if the same instance is returned as last time
@@ -155,7 +152,7 @@ const generateInstance = (
                 ? old_vdom.instance
                 : old_vdom,
             generated,
-            new_vdom.bindpoint,
+            new_vdom,
             init_queue
         );
     }
@@ -192,7 +189,7 @@ export const shouldUpdate = <PropType>(
 const updateNode = (
     old_vdom: Vdom | null,
     new_vdom: VdomNode,
-    bindpoint: BindPoint,
+    bindpoint: Vdom,
     init_queue: VdomNode[]
 ) => {
     if (old_vdom !== null && old_vdom.node_type === VDOM_FUNCTIONAL) {
@@ -211,7 +208,7 @@ const updateNode = (
 const patchVdomNode = (
     old_vdom: VdomNode,
     new_vdom: VdomNode,
-    bindpoint: BindPoint,
+    bindpoint: Vdom,
     init_queue: VdomNode[]
 ) => {
 
@@ -250,7 +247,7 @@ const patchVdomNode = (
     }
 }
 
-const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint, init_queue: VdomNode[]) => {
+const createHTMLElement = (vdom: VdomNode, bindpoint: Vdom, init_queue: VdomNode[]) => {
     if (vdom.value === "") {
         throw new Error("Invalid tag");
     }
@@ -273,7 +270,7 @@ const createHTMLElement = (vdom: VdomNode, bindpoint: BindPoint, init_queue: Vdo
     return elem;
 }
 
-const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPoint, init_queue: VdomNode[]) => {
+const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: Vdom, init_queue: VdomNode[]) => {
     if (vdoms.length === 1 && vdoms[0] !== null && vdoms[0]!.node_type === VDOM_TEXT) {
         elem.textContent = (vdoms[0] as VdomText).value;
         (vdoms[0] as VdomText).elem = elem.firstChild;
@@ -324,25 +321,29 @@ const patchStyle = (
 }
 
 interface Handler {
-    bindpoint: BindPoint,
+    bindpoint: Vdom,
     userHandler: ((event: Event, vdom: Vdom) => void | Promise<void> | boolean),
     handler: EventHandlerNonNull;
     redraw: boolean;
     useCapture: boolean;
 }
 
-const makeHandler = (bindpoint: BindPoint, userHandler: (e: Event) => any, do_redraw: boolean, useCapture: boolean) => {
+const makeHandler = (bindpoint: Vdom, userHandler: (e: Event) => any, do_redraw: boolean, useCapture: boolean) => {
     const binding: Handler = {
         bindpoint: bindpoint,
         userHandler: userHandler,
         redraw: do_redraw,
         useCapture: useCapture,
         handler: (event: Event) => {
-            const returned = binding.userHandler(event, binding.bindpoint.binding);
+            let updated_bindpoint = bindpoint;
+            while(updated_bindpoint.updated !== null)
+                updated_bindpoint = updated_bindpoint.updated;
+
+            const returned = binding.userHandler(event, updated_bindpoint);
             if (returned instanceof Promise) {
-                returned.then(() => binding.redraw && redraw(binding.bindpoint.binding));
+                returned.then(() => binding.redraw && redraw(updated_bindpoint));
             } else {
-                binding.redraw && redraw(binding.bindpoint.binding);
+                binding.redraw && redraw(updated_bindpoint);
             }
             return returned;
         }
@@ -355,7 +356,7 @@ const patchAttributes = (
     elem: Element,
     old_attr: Attributes,
     new_attr: Attributes,
-    bindpoint: BindPoint
+    bindpoint: Vdom
 ) => {
     for (const key in new_attr) {
         const value = new_attr[key];

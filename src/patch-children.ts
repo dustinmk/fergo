@@ -1,4 +1,4 @@
-import {Vdom, BindPoint, VdomFragment, VdomNode} from "./vdom";
+import {Vdom, VdomFragment, VdomNode} from "./vdom";
 import {
     VDOM_NODE,
     VDOM_FRAGMENT,
@@ -14,7 +14,7 @@ interface Unkeyed {
     items: Array<number>;
 }
 
-export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: BindPoint, init_queue: VdomNode[]) => {
+export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: Vdom, init_queue: VdomNode[]) => {
     if (old_parent === null || old_parent.elem === null) {
         throw new Error("Parent node must not be null");
     }
@@ -96,7 +96,7 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
     
 }
 
-const reconcileWithLIS = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: BindPoint, init_queue: VdomNode[]) => {
+const reconcileWithLIS = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: Vdom, init_queue: VdomNode[]) => {
     if (old_parent.elem === null) {
         throw new Error("Old parent elem must exist");
     }
@@ -148,7 +148,7 @@ const findFragmentInsertPoint = (next_index: number, old_children: Array<Vdom | 
         if (candidate !== null && candidate.node_type === VDOM_FRAGMENT) {
             return findFragmentInsertPoint(0, candidate.children);
 
-        } else if (candidate !== null && candidate.parent !== null) {
+        } else if (candidate !== null && candidate.mounted) {
             return candidate;
         }
     }
@@ -169,7 +169,7 @@ const clearExtraNodes = (old_parent: Vdom, old_children: Array<Vdom | null>, key
         const removed = old_children[ unkeyed.items[unkeyed.index] ];
         if (removed !== null) {
             // Fragment chidlren are all cleared in update()
-            if (removed.elem !== null && removed.parent !== null) {
+            if (removed.elem !== null && removed.mounted) {
                 old_parent.elem.removeChild(removed.elem);  
             }
             update(removed, null, null, []);
@@ -180,7 +180,7 @@ const clearExtraNodes = (old_parent: Vdom, old_children: Array<Vdom | null>, key
     keyed.forEach(removed_index => {
         if (removed_index !== null) {
             const removed = old_children[removed_index];
-            if (removed !== null && removed.elem !== null && removed.parent !== null) {
+            if (removed !== null && removed.elem !== null && removed.mounted) {
                 // Null check override because TS can't introspect type narrowing through callbacks
                 old_parent.elem!.removeChild(removed.elem);
             }
@@ -244,7 +244,7 @@ const patchElements = (
         const lis_node = lis_vdom === null ? null : lis_vdom.elem;
 
         // Skip over null or reused nodes
-        if (old_vdom !== null && old_vdom.parent === null) {
+        if (old_vdom !== null && !old_vdom.mounted) {
             ++old_index;
             continue;
         }
@@ -263,7 +263,7 @@ const patchElements = (
             new_node !== null && root_node.insertBefore(new_node, lis_node === null ? end_node : lis_node);
 
             // If new_node is reusing an elem from the old vdom, mark it as removed
-            if(matching_vdom !== null) matching_vdom.parent = null;
+            if(matching_vdom !== null) matching_vdom.mounted = false;
             ++new_index;
 
         } else if (lis_node === old_node && lis_node === new_node) {
@@ -275,10 +275,10 @@ const patchElements = (
             root_node.replaceChild(new_node, old_node);
 
             // If new_node is reusing an elem from the old vdom, mark it as removed
-            if(matching_vdom !== null) matching_vdom.parent = null;
+            if(matching_vdom !== null) matching_vdom.mounted = false;
 
             // Mark the replaced node as removed
-            if(old_vdom !== null) old_vdom.parent = null;
+            if(old_vdom !== null) old_vdom.mounted = false;
             ++new_index;
             ++old_index;
             
@@ -286,11 +286,11 @@ const patchElements = (
             // Do not remove elems that have already been used elsewhere
             old_node !== null 
                 && old_vdom !== null
-                && old_vdom.parent !== null
+                && old_vdom.mounted
                 && root_node.removeChild(old_node);
 
             // Mark the replaced node as removed
-            if(old_vdom !== null) old_vdom.parent = null;
+            if(old_vdom !== null) old_vdom.mounted = false;
             ++old_index;
         }
     }

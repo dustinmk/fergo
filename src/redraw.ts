@@ -37,14 +37,11 @@ const handleFrame = () => {
 export const redrawSync = (vdom: Vdom) => {
     // Propagate redraw() up to closest functional vnode
     if (vdom === null || vdom.node_type !== VDOM_FUNCTIONAL) {
-        if (vdom === null || vdom.parent === null) {
-            throw new Error("Root element must be a functional vdom");
-        }
-        redrawSync(vdom.parent);
+        throw new Error("Can only redraw on functional vdoms");
 
     // If the vdom is an old instance, redraw the current instance
-    } else if (vdom.bindpoint.binding !== vdom) {
-        redrawSync(vdom.bindpoint.binding);
+    } else if (vdom.updated !== null) {
+        redrawSync(vdom.updated);
 
     } else {
         const old_elem = vdom.elem;
@@ -53,10 +50,10 @@ export const redrawSync = (vdom: Vdom) => {
         // Only do this at the top level of a redraw cycle
         const init_queue: VdomNode[] = [];
         const generated = vdom.value(vdom);
-        vdom.elem = update(vdom.instance, generated, vdom.bindpoint, init_queue);
+        vdom.elem = update(vdom.instance, generated, vdom, init_queue);
         vdom.instance = generated;
         if (generated !== null) {
-            generated.parent = vdom;
+            generated.mounted = true;
         }
         
         if (vdom.elem === null) {
@@ -73,16 +70,7 @@ export const redrawSync = (vdom: Vdom) => {
             old_elem.parentNode.replaceChild(vdom.elem, old_elem);
         }
 
-        // A chain of VdomFunctionals needs to have their elems updated if the redraw is
-        // initiated inside the chain
-        // Can't just redraw from top of chain because props might not change on children
-        // so the forced redraw won't work
-        let parent_vdom = vdom.parent;
-        while (parent_vdom !== null && parent_vdom.node_type === VDOM_FUNCTIONAL) {
-            parent_vdom.elem = vdom.elem;
-            parent_vdom = parent_vdom.parent;
-        }
-
+        // TODO: VdomFunctionals should not have elems - defer to instance recursively
         init_queue.forEach(v => v.attributes.oninit !== undefined && v.attributes.oninit(v));
     }
 }

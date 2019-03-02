@@ -12,7 +12,7 @@ import {
 
 interface VdomBase {
     node_type: T_VDOM_NODE | T_VDOM_FRAGMENT | T_VDOM_TEXT | T_VDOM_FUNCTIONAL;
-    parent: Vdom | null;
+    mounted: boolean;
     elem: Node | null;
     value: string | VdomGenerator<any, any> | null;
     key: any;
@@ -23,7 +23,7 @@ interface VdomBase {
     instance: Vdom | null;
     state: any;
     props: any;
-    bindpoint: undefined | BindPoint;
+    updated: Vdom | null;
 }
 
 export interface VdomFunctional<PropType = {}, StateType = {}>
@@ -44,7 +44,7 @@ export interface VdomFunctional<PropType = {}, StateType = {}>
     // shared across all instances of a functional component and it has its binding
     // reset to the current node for every redraw()
 
-    bindpoint: BindPoint;   // TODO: Make linked list instead of object: set old_vdom.next to new_vdom
+    updated: Vdom | null;   // TODO: Make linked list instead of object: set old_vdom.next to new_vdom
     // TODO: Also remove parent because VF can get parent elem in redraw from elem itself
 }
 
@@ -68,10 +68,6 @@ export interface FunctionalAttributes<PropType = {}, StateType = {}> {
 export type VdomFunctionalNotInit<PropType, StateType = {}> =
     VdomFunctional<PropType, StateType> 
     & { state: StateType | null };
-
-export interface BindPoint {
-    binding: VdomFunctional<any, any>;
-}
 
 export interface VdomNode extends VdomBase {
     node_type: T_VDOM_NODE;
@@ -143,7 +139,6 @@ export function v<PropType, StateType>(
             ? arg1
             : {} as FunctionalAttributes<PropType, StateType>;
         return makeVdomFunctional(
-            null,
             selector,
             attr.state === undefined ? null : attr.state,
             attr.props,
@@ -199,7 +194,7 @@ function isFunctionalAttributes<PropType, StateType>(
 
 // TODO: Child nodes can stay strings if all the children are strings, otherwise need a node
 // TODO: Fragments can stay arrays always
-const childToVdom = (child: Child, parent: Vdom) => {
+const childToVdom = (child: Child) => {
 
     // Use VdomNull as a placeholder for conditional nodes
     if (child === null || child === undefined || child === false || child === true) {
@@ -207,13 +202,13 @@ const childToVdom = (child: Child, parent: Vdom) => {
     }
 
     else if (typeof child === "string") {
-        return makeVdomText(parent, child);
+        return makeVdomText(child);
 
     } else if(typeof child === "function") {
-        return makeVdomFunctional(parent, child, null, null, null, []);
+        return makeVdomFunctional(child, null, null, null, []);
 
     } else if (Array.isArray(child)) {
-        return makeVdomFragment(parent, child);
+        return makeVdomFragment(child);
 
     // If a vdom was already created through v(), just bind the parent
     // Children must be unique so they can store state and elems
@@ -224,9 +219,9 @@ const childToVdom = (child: Child, parent: Vdom) => {
     // course of action.
     }  else if (child.node_type !== undefined) {
         if (child.node_type !== VDOM_FUNCTIONAL) {
-            if (child.parent !== null || child.elem !== null) return copyVdom(child, parent);
+            if (child.mounted || child.elem !== null) return copyVdom(child);
             else {
-                child.parent = parent;
+                child.mounted = true;
                 return child;
             }
 
@@ -237,13 +232,15 @@ const childToVdom = (child: Child, parent: Vdom) => {
             // handlers to resolve this. redraw() will redraw on the bound vdom. All
             // copies of the original vdom instance will share the same binding instance,
             // so they all point to the current copy.
+
+            // TODO: Prevent copy if not needed
             const new_child: VdomFunctional<any, any> = copyV(child) as VdomFunctional<any, any>;
-            new_child.parent = parent;
-            if (child.bindpoint !== undefined) child.bindpoint.binding = new_child;
-            child.parent = parent;
+            new_child.mounted = true;
+            child.updated = new_child;
+            child.mounted = true;
             child.elem = null;  // Safeguard against memory leaks
             child.instance = null;
-            new_child.bindpoint = {binding: new_child}
+            new_child.updated = null;
             if (child.state !== undefined && child.state !== null && typeof child.state === "object") {
                 child.state = {...child.state}
             }
@@ -256,21 +253,21 @@ const childToVdom = (child: Child, parent: Vdom) => {
     }
 }
 
-const copyVdom = (vdom: Vdom | null, parent: Vdom) => {
+const copyVdom = (vdom: Vdom | null) => {
     if (vdom === null) {
         return null;
     }
 
-    if (vdom.parent === null) {
-        vdom.parent = parent;
+    if (!vdom.mounted) {
+        vdom.mounted = true;
         return vdom;
     }
 
     const copy = copyV(vdom);
-    copy.parent = parent;
+    copy.mounted = true;
 
     if (copy.node_type === VDOM_NODE) {
-        copy.children = copy.children.map(child => copyVdom(child, copy as Vdom) as Vdom | null)
+        copy.children = copy.children.map(child => copyVdom(child) as Vdom | null)
     }
 
     return copy;
@@ -335,7 +332,6 @@ export const splitSelector = (selector: string) => {
 }
 
 const makeVdomFunctional = <PropType, StateType>(
-    parent: Vdom | null,
     generator: VdomGenerator<PropType, StateType>,
     state: StateType | null,
     props: PropType | undefined,
@@ -347,7 +343,6 @@ const makeVdomFunctional = <PropType, StateType>(
 ) => {
     const v = new V(
         VDOM_FUNCTIONAL,
-        parent,
         generator,
         key,
         {
@@ -362,7 +357,6 @@ const makeVdomFunctional = <PropType, StateType>(
         props
     )
 
-    v.bindpoint = {binding: v as VdomFunctional<PropType, StateType>};
     return v as VdomFunctional<PropType, StateType>;
 }
 
@@ -370,7 +364,6 @@ const makeVdomNode = (selector: string, attributes: Attributes, children: Child[
     const {id, tag, classes} = splitSelector(selector);
     return new V(
         VDOM_NODE,
-        null,
         tag,
         attributes.key === undefined ? null : attributes.key,
         id === undefined ? attributes : {...attributes, id},
@@ -382,10 +375,9 @@ const makeVdomNode = (selector: string, attributes: Attributes, children: Child[
     )
 }
 
-const makeVdomText = (parent: Vdom, text: string) => {
+const makeVdomText = (text: string) => {
     return new V(
         VDOM_TEXT,
-        parent,
         text,
         null,
         {},
@@ -397,10 +389,9 @@ const makeVdomText = (parent: Vdom, text: string) => {
     ) as Vdom
 }
 
-const makeVdomFragment = (parent: Vdom, children: Array<Child>) => {
+const makeVdomFragment = (children: Array<Child>) => {
     return new V(
         VDOM_FRAGMENT,
-        parent,
         null,
         null,
         {},
@@ -414,7 +405,7 @@ const makeVdomFragment = (parent: Vdom, children: Array<Child>) => {
 
 class V {
     node_type: T_VDOM_NODE | T_VDOM_FRAGMENT | T_VDOM_TEXT | T_VDOM_FUNCTIONAL;
-    parent: Vdom | null;
+    mounted: boolean;
     elem: Node | null;
     value: string | VdomGenerator<any, any> | null;
     key: any;
@@ -425,11 +416,10 @@ class V {
     instance: Vdom | null;
     state: any;
     props: any;
-    bindpoint: undefined | BindPoint;
+    updated: null | Vdom;
 
     constructor(
         node_type: T_VDOM_NODE | T_VDOM_FRAGMENT | T_VDOM_TEXT | T_VDOM_FUNCTIONAL,
-        parent: Vdom | null,
         value: string | VdomGenerator<any, any> | null,
         key: any,
         attributes: any,
@@ -440,25 +430,24 @@ class V {
         props: any,
     ) {
         this.node_type = node_type;
-        this.parent = parent;
+        this.mounted = false;
         this.elem = null;
         this.value = value;
         this.key = key;
         this.attributes = attributes;
         this.classes = classes;
-        this.children = children.map(child => childToVdom(child, this as Vdom)) as Array<Vdom | null>; 
+        this.children = children.map(child => childToVdom(child)) as Array<Vdom | null>; 
         this.namespace = namespace;
         this.instance = null;
         this.state = state;
         this.props = props;
-        this.bindpoint = undefined as BindPoint | undefined;
+        this.updated = null;
     }
 }
 
 const copyV = (v: V) => {
     const n = new V(
         v.node_type,
-        v.parent,
         v.value,
         v.key,
         v.attributes,
@@ -469,6 +458,19 @@ const copyV = (v: V) => {
         v.props);
     n.elem = v.elem;
     n.instance = v.instance;
-    n.bindpoint = v.bindpoint;
+    n.updated = v.updated;
     return n;
+}
+
+export const getElem = (vdom: Vdom | null): Node | null => {
+    if (vdom === null) {
+        return null;
+    } else if (vdom.node_type === VDOM_FUNCTIONAL) {
+        while (vdom !== null && vdom.node_type === VDOM_FUNCTIONAL) {
+            vdom = vdom.instance;
+        }
+        return vdom === null ? null : vdom.elem;
+    } else {
+        return vdom.elem;
+    }
 }
