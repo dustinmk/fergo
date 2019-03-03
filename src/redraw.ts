@@ -73,7 +73,7 @@ export const redrawSync = (vdom: Vdom) => {
         ) {
             old_elem.parentNode.replaceChild(vdom.elem, old_elem);
         }
-
+        
         // TODO: VdomFunctionals should not have elems - defer to instance recursively
         init_queue.forEach(v => v.attributes.oninit !== undefined && v.attributes.oninit(v));
     }

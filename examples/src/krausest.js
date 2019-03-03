@@ -26,6 +26,15 @@ const Row = vdom => {
         v("td.col-md-6")
     ]);
 };
+const redrawTop = (handler) => {
+    return {
+        redraw: false,
+        handler: () => {
+            handler();
+            redraw(View);
+        }
+    }
+}
 
 const Header = (vdom) => v("div.jumbotron", [
     v("div.row", [
@@ -38,42 +47,42 @@ const Header = (vdom) => v("div.jumbotron", [
                     v("button.btn.btn-primary.btn-block", {
                         type: "button",
                         id: "run",
-                        onclick: {redraw: false, handler: () => {vdom.props.store.run(); redraw(View)}}
+                        onclick: redrawTop(() => vdom.props.store.run())
                     }, "Create 1,000 rows")
                 ]),
                 v("div.col-sm-6.smallpad", [
                     v("button.btn.btn-primary.btn-block", {
                         type: "button",
                         id: "runlots",
-                        onclick: {redraw: false, handler: () => {vdom.props.store.runLots(); redraw(View)}}
+                        onclick: redrawTop(() => vdom.props.store.runLots())
                     }, "Create 10,000 rows")
                 ]),
                 v("div.col-sm-6.smallpad", [
                     v("button.btn.btn-primary.btn-block", {
                         type: "button",
                         id: "add",
-                        onclick: {redraw: false, handler: () => {vdom.props.store.add(); redraw(View)}}
+                        onclick: redrawTop(() => vdom.props.store.add())
                     }, "Append 1,000 rows")
                 ]),
                 v("div.col-sm-6.smallpad", [
                     v("button.btn.btn-primary.btn-block", {
                         type: "button",
                         id: "update",
-                        onclick: {redraw: false, handler: () => {vdom.props.store.update(); redraw(View)}}
+                        onclick: redrawTop(() => vdom.props.store.update())
                     }, "Update every 10th row")
                 ]),
                 v("div.col-sm-6.smallpad", [
                     v("button.btn.btn-primary.btn-block", {
                         type: "button",
                         id: "clear",
-                        onclick: {redraw: false, handler: () => {vdom.props.store.clear(); redraw(View)}}
+                        onclick: redrawTop(() => vdom.props.store.clear())
                     }, "Clear")
                 ]),
                 v("div.col-sm-6.smallpad", [
                     v("button.btn.btn-primary.btn-block", {
                         type: "button",
                         id: "swaprows",
-                        onclick: {redraw: false, handler: () => {vdom.props.store.swapRows(); redraw(View)}}
+                        onclick: redrawTop(() => vdom.props.store.swapRows())
                     }, "Swap Rows")
                 ])
             ])

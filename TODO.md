@@ -1,3 +1,10 @@
+## Optimizations
+- Reuse unused keyed for new keyed elements elements after matching is complete (Krausest replace)
+- Implement synthetic events: Map nodes to vdoms, put event handler on root. Do bubbling
+- Extra fast paths in patch_children: reverse, swap
+- Have single string as child when possible
+- Find out why Krausest update every 10th is slow (probably refactor and implement other opts before doing)
+- Test non-monomorphic on a branch.
 
 ## Update
 - Refactor

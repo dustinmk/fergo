@@ -243,6 +243,7 @@ const childToVdom = (child: Child) => {
             // so they all point to the current copy.
 
             // TODO: Prevent copy if not needed
+            // State bug if done with cancelling on mounted
             const new_child: VdomFunctional<any, any> = copyV(child) as VdomFunctional<any, any>;
             new_child.mounted = true;
             child.binding.bindpoint = new_child;

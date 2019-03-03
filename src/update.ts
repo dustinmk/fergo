@@ -118,7 +118,7 @@ const updateFunctionalVdom = (
                 elem_vdom = elem_vdom.instance;
             if (elem_vdom === null || elem_vdom.elem === null) throw new Error("Instance cannot be null");
             new_vdom.elem = elem_vdom.elem;
-            
+
             return new_vdom.elem;
 
         // Otherwise, redraw
@@ -244,11 +244,12 @@ const patchVdomNode = (
             old_vdom.children.forEach(child => updateNullNode(child));
             // This implicitly removes DOM children
             old_vdom.elem.textContent = (new_vdom.children[0] as VdomText).value;
+            new_vdom.children[0]!.elem = old_vdom.elem.firstChild;
         } else if ((old_vdom.children[0]! as VdomText).value !== (new_vdom.children[0]! as VdomText).value) {
-            old_vdom.elem.textContent = (new_vdom.children[0] as VdomText).value;
+            (old_vdom.children[0]! as VdomText).elem!.nodeValue = (new_vdom.children[0] as VdomText).value;
+            (new_vdom.children[0] as VdomText).elem = (old_vdom.children[0]! as VdomText).elem;
         }
         
-        new_vdom.children[0]!.elem = old_vdom.elem.firstChild;
         return old_vdom.elem;
 
     } else {
@@ -287,8 +288,19 @@ const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPo
     }
 
     for (const child of vdoms) {
-        if (child !== null && child.node_type === VDOM_FRAGMENT) {
+        if (child === null) {
+            continue;
+        } else if(child.node_type === VDOM_FRAGMENT) {
             createChildren(elem, child.children, bindpoint, init_queue);
+
+        } else if (child.node_type === VDOM_NODE) {
+            const child_elem = createHTMLElement(child, bindpoint, init_queue);
+            if (bindpoint !== null) child.binding = bindpoint;
+            if (child_elem !== null) elem.appendChild(child_elem);
+
+        } else if (child.node_type === VDOM_FUNCTIONAL) {
+            const child_elem = createFunctional(child, init_queue);
+            if (child_elem !== null) elem.appendChild(child_elem);
 
         } else {
             // TODO: Separate create path once the root node is determined to be new
@@ -299,6 +311,19 @@ const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPo
             }
         }
     }
+}
+
+const createFunctional = (vdom: VdomFunctional, init_queue: VdomNode[]): Node | null => {
+    vdom.instance = vdom.value(vdom);
+    vdom.mounted = true;
+    if (vdom.instance.node_type === VDOM_NODE) {
+        vdom.elem = createHTMLElement(vdom.instance, vdom.binding, init_queue)
+    } else if (vdom.instance.node_type === VDOM_FUNCTIONAL) {
+        vdom.elem = createFunctional(vdom.instance, init_queue);
+    }
+    vdom.instance.mounted = true;
+    vdom.attributes.oninit !== undefined && vdom.attributes.oninit(vdom);
+    return vdom.elem as Node | null;
 }
 
 const patchClasses = (elem: Element, old_classes: string, new_classes: string) => {
@@ -380,8 +405,8 @@ const patchAttributes = (
                     userHandler = value;
                 } else {
                     userHandler = value.handler;
-                    redraw = value.redraw === undefined ? true : value;
-                    useCapture = value.useCapture === undefined ? false : value;
+                    redraw = value.redraw === undefined ? true : value.redraw;
+                    useCapture = value.useCapture === undefined ? false : value.useCapture;
                 }
 
                 if (bindpoint === null) throw new Error("Bindpoint must not be null");

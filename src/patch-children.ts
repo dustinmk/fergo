@@ -14,7 +14,14 @@ interface Unkeyed {
     items: Array<number>;
 }
 
-export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: BindPoint | null, init_queue: VdomNode[]) => {
+export const patchChildren = (
+    old_parent: Vdom,
+    old_children: Array<Vdom | null>,
+    new_children: Array<Vdom | null>,
+    parent_next_node: Vdom | null,
+    bindpoint: BindPoint | null,
+    init_queue: VdomNode[]
+) => {
     if (old_parent === null || old_parent.elem === null) {
         throw new Error("Parent node must not be null");
     }
@@ -78,7 +85,6 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
     if (lis_new_end - lis_new_begin <= 0 && lis_old_end - lis_old_begin <= 0) {
         return old_parent.elem;
     } else {
-        // Treat rest as a fragment
         // TODO: avoid slicing the arrays
         return reconcileWithLIS(
             old_parent,
@@ -88,12 +94,6 @@ export const patchChildren = (old_parent: Vdom, old_children: Array<Vdom | null>
             bindpoint,
             init_queue);
     }
-
-    // while old_key === new_key || old_tag === new_tag || either old or new are null: update()
-    // Go from start to end, end to start, and reverse order
-    // Then otherwise do splitKeyed on remaining nodes
-    // Remeber fragments
-    
 }
 
 const reconcileWithLIS = (old_parent: Vdom, old_children: Array<Vdom | null>, new_children: Array<Vdom | null>, parent_next_node: Vdom | null, bindpoint: BindPoint | null, init_queue: VdomNode[]) => {
@@ -105,6 +105,7 @@ const reconcileWithLIS = (old_parent: Vdom, old_children: Array<Vdom | null>, ne
     const common_node_indexes: number[] = [];   // Nodes shared between new and old
     const matching_vdoms: Array<number> = [];   // Old vdoms paired with new vdoms
 
+    // TODO: Reuse unused keyed elements for new keyed elements after matching is done
     let new_index = 0;
     let old_index: number = 0;
     while (new_index < new_children.length) {
