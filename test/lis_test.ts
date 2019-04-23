@@ -13,4 +13,6 @@ describe("Longest increasing subsequence", () => {
     it("Is okay with empty list", () => {
         expect(lis([])).to.deep.equal([]);
     });
+
+    // TODO: Test with -1
 });

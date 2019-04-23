@@ -5,6 +5,7 @@
 - Have single string as child when possible
 - Find out why Krausest update every 10th is slow (probably refactor and implement other opts before doing)
 - Test non-monomorphic on a branch.
+- Fastpath for removing child elements (textContent = ""))
 
 ## Update
 - Refactor

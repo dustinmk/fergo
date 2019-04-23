@@ -102,8 +102,7 @@ const reconcileWithLIS = (old_parent: Vdom, old_children: Array<Vdom | null>, ne
     }
 
     const [keyed, unkeyed] = splitKeyed(old_children);
-    const common_node_indexes: number[] = [];   // Nodes shared between new and old
-    const matching_vdoms: Array<number> = [];   // Old vdoms paired with new vdoms
+    const matching_vdoms: Array<number> = [];   // Old vdoms paired with new vdoms sharing same element, otherwise -1
 
     // TODO: Reuse unused keyed elements for new keyed elements after matching is done
     let new_index = 0;
@@ -121,21 +120,50 @@ const reconcileWithLIS = (old_parent: Vdom, old_children: Array<Vdom | null>, ne
             const new_fragment_children = isFragment(new_child) ? new_child.children : [new_child];
 
             patchChildren(old_parent, old_fragment_children, new_fragment_children, next_parent, bindpoint, init_queue);
+            matching_vdoms.push(-1);
 
         } else {
-            update(matching_child, new_child, bindpoint, init_queue);
-
-            matching_vdoms.push(matching_child_index === null ? -1 : matching_child_index);
-            if (new_child !== null && matching_child !== null && matching_child_index !== null && matching_child.elem === new_child.elem) {
-                common_node_indexes.push(matching_child_index);
-            }
+            matching_vdoms.push(
+                new_child !== null
+                && matching_child !== null
+                && matching_child_index !== null
+                ? matching_child_index
+                : -1
+            );
         }
 
         ++new_index;
         ++old_index;
     }
 
-    const lis_new_nodes = lis(common_node_indexes);
+    // TODO: Assign unmatched keyed new to unmatched keyed old into matching_vdoms
+    new_index = 0;
+    for (const [key, old_child_index] of keyed) {
+        if (old_child_index !== null) {
+            while (new_index < new_children.length
+                && (matching_vdoms[new_index] !== -1
+                    || new_children[new_index] === null
+                    || new_children[new_index]!.key === null)
+            ) ++new_index;
+
+            if (new_index >= new_children.length) break;
+
+            matching_vdoms[new_index] = old_child_index;
+            keyed.set(key, null);
+        }
+    }
+
+    new_index = 0;
+    while (new_index < new_children.length) {
+        const matching_index = matching_vdoms[new_index];
+        const old_child = matching_index < 0 ? null : old_children[matching_index];
+        const new_elem = update(old_child, new_children[new_index], bindpoint, init_queue)
+        if (old_child !== null && old_child.elem !== new_elem) {
+            matching_vdoms[new_index] = -1;
+        }
+        ++new_index;
+    }
+    const lis_new_nodes = lis(matching_vdoms);
     patchElements(old_parent.elem, old_children, new_children, matching_vdoms, lis_new_nodes, parent_next_node === null ? null : parent_next_node.elem);
     clearExtraNodes(old_parent, old_children, keyed, unkeyed);
 

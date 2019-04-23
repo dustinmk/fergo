@@ -1,16 +1,24 @@
 
 // Best case linear time, worst case nlogn - nloglogn + O(n)
 // See https://www.sciencedirect.com/science/article/pii/0012365X7590103X
+// TODO: Refactor for performance - cache array lookups, etc.
 export default (x: number[]) => {
-    const max_lis: number[] = [0];
+    
     const prev: number[] = [];
 
     if (x.length <= 0) {
         return [];
     }
 
+    let i = 0;
+    while (x[i] < 0 && i < x.length) ++i;
+    if (i >= x.length) return [];
+    const max_lis: number[] = [i];
+
     for (let i = 0; i < x.length; ++i) {
-        if (x[i] > x[max_lis[max_lis.length - 1]]) {
+        if (x[i] < 0) {
+            prev.push(0);
+        } else if (x[i] > x[max_lis[max_lis.length - 1]]) {
             prev.push(max_lis[max_lis.length - 1]);
             max_lis.push(i);
 
@@ -26,7 +34,7 @@ export default (x: number[]) => {
                     right = mid - 1;
                 }
             }
-            
+
             prev.push(max_lis[left - 1]);
             max_lis[left] = i   // Maintains Packed SMI representation since left <= max_lis.length
         }
