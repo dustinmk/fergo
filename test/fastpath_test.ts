@@ -7,7 +7,7 @@ import {mountAndMatch, redrawAndMatch} from "./test_common";
 chai.use(chaiDOM);
 selectRedraw(redrawSync);
 
-describe("Core", () => {
+describe("Fastpath", () => {
     jsdom({url: "http://localhost"});
 
     it("Replaces keyed elements", () => {

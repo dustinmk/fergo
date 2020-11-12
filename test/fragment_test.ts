@@ -2,7 +2,7 @@ import chai, {expect} from "chai";
 import jsdom from "mocha-jsdom";
 import {v, mount, redraw, redrawSync, selectRedraw} from "src/index";
 import chaiDOM from "chai-dom";
-import {getRootElement} from "./test_common";
+import {getRootElement, printDocument} from "./test_common";
 
 chai.use(chaiDOM);
 selectRedraw(redrawSync);
@@ -81,7 +81,7 @@ describe("Fragments", () => {
         expect(document.querySelectorAll("p")).to.have.text(["7", "6", "4", "3"])
     })
 
-    it("replaces second element with fragment", () => {
+    it.only("replaces second element with fragment", () => {
         let toggle = true;
         const root = v(() => v("div", toggle
             ? [
@@ -96,9 +96,11 @@ describe("Fragments", () => {
                 ],
             ]));
         mount(getRootElement(), root);
+        printDocument()
         expect(document.querySelectorAll("p")).to.have.text(["1", "2"])
         toggle = false;
         redraw(root)
+        printDocument()
         expect(document.querySelectorAll("p")).to.have.text(["1", "3", "4"])
     })
 

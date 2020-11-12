@@ -20,7 +20,7 @@ export default () => {
             v("p", "v1"),
             v("h1", "Todo Example"),
             v("input", {
-                oninput: (evt: Event) => text = (<HTMLInputElement>evt.target).value
+                oninput: (evt: InputEvent) => text = (<HTMLInputElement>evt.target).value
             }),
             v("button", {
                 onclick: () => text.length > 0 &&

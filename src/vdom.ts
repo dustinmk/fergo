@@ -320,6 +320,7 @@ export const splitSelector = (selector: string) => {
         classes: ""
     }
 
+    // This manual parse is much faster than using regex
     let token_start = 0;
     let state: SelectorState = SelectorState.TAG;
     while (index < selector.length) {
@@ -415,6 +416,7 @@ const makeVdomFragment = (children: Array<Child>) => {
     );
 }
 
+// TODO: Use constructor argument binding
 class V {
     node_type: T_VDOM_NODE | T_VDOM_FRAGMENT | T_VDOM_TEXT | T_VDOM_FUNCTIONAL;
     mounted: boolean;

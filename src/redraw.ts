@@ -2,6 +2,8 @@ import {Vdom, VdomNode} from "./vdom";
 import update from "./update";
 import {VDOM_FUNCTIONAL} from "./constants";
 
+// TODO: Limit framerate manually
+
 // Limit redraws by queuing and requestAnimationFrame()
 let double_buffered_queue: Array<Vdom[]> = [[], []];
 let current_queue_id = 0;

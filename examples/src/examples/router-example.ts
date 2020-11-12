@@ -29,6 +29,8 @@ const r = router({
     "/p/*": (vdom: VdomFunctional<Path>) => v("p", `Path: ${vdom.props.path}`),
     "/r": subrouter,
     "/t/*": (vdom: VdomFunctional<Path>) => {
+        // TODO: have an subroute(router, view => Vdom) => (VdomFunctional => Vdom) function
+        // Then you can ` "/t/*": subroute(numrouter, view => v("div", view)) `
         numrouter.parent = r;
         numrouter.path = vdom.props.path;
         numrouter.parent_path = ["t"];
