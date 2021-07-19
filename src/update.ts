@@ -244,10 +244,13 @@ const patchVdomNode = (
             // This implicitly removes DOM children
             old_vdom.elem.textContent = (new_vdom.children[0] as VdomText).value;
             new_vdom.children[0]!.elem = old_vdom.elem.firstChild;
-        } else if ((old_vdom.children[0]! as VdomText).value !== (new_vdom.children[0]! as VdomText).value) {
-            (old_vdom.children[0]! as VdomText).elem!.nodeValue = (new_vdom.children[0] as VdomText).value;
+        } else {
+            if ((old_vdom.children[0]! as VdomText).value !== (new_vdom.children[0]! as VdomText).value) {
+                (old_vdom.children[0]! as VdomText).elem!.nodeValue = (new_vdom.children[0] as VdomText).value;
+            }
             (new_vdom.children[0] as VdomText).elem = (old_vdom.children[0]! as VdomText).elem;
         }
+        
         
         return old_vdom.elem;
 

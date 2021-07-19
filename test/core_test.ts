@@ -324,5 +324,24 @@ describe("Core", () => {
         redraw(root);
         expect(document.querySelector("p")).to.not.have.class("class");
     })
+
+    it("Multiple redraws on text elements are correct", () => {
+        let text = "a";
+        const root = v(() => v("p", text));
+        mount(getRootElement(), root);
+        expect(document.querySelector("p")).to.have.text(text);
+
+        text = "b";
+        redraw(root);
+        expect(document.querySelector("p")).to.have.text(text);
+
+        text = "c";
+        redraw(root);
+        expect(document.querySelector("p")).to.have.text(text);
+
+        text = "d";
+        redraw(root);
+        expect(document.querySelector("p")).to.have.text(text);
+    })
 });
 

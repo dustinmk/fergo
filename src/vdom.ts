@@ -198,6 +198,10 @@ const childToVdom = (child: Child) => {
     }
 
     else if (typeof child === "string") {
+        // Child text nodes of length 0 don't produce an HTML element
+        if (child.length <= 0) {
+            return null;
+        }
         const v = makeVdomText(child);
         v.mounted = true;
         return v;

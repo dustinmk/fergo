@@ -33,8 +33,8 @@ if (root === null) {
 
 mount(root, () => v("div", [
     v("h1", "Examples"),
+    v("a", {href: "/router-example.html"}, "Router"),
     ...Object.keys(examples).map(name => v("span", [
-        v("a", {href: "/router-example.html"}, "Router"),
         v("a", {href: `./index.html?component=${name}`}, `${name}`),
         v("p", {style: {"display": "inline"}}, "\u00a0")
     ])),

@@ -5,6 +5,7 @@ const nodeExternals = require("webpack-node-externals");
 
 const buildConfig = (root_dir, entry, output, copy_files) => {
     return {
+        target: "web",
         mode: "development",
         entry: path.resolve(__dirname, root_dir, "src", entry),
         devtool: "inline-source-map",
