@@ -1,17 +1,15 @@
 // TODO: JSX compatible variant
 import {
     T_VDOM_NODE,
-    T_VDOM_FRAGMENT,
     T_VDOM_TEXT,
     T_VDOM_FUNCTIONAL,
     VDOM_NODE,
-    VDOM_FRAGMENT,
     VDOM_TEXT,
     VDOM_FUNCTIONAL,
 } from "./constants";
 
 interface VdomBase {
-    node_type: T_VDOM_NODE | T_VDOM_FRAGMENT | T_VDOM_TEXT | T_VDOM_FUNCTIONAL;
+    node_type: T_VDOM_NODE | T_VDOM_TEXT | T_VDOM_FUNCTIONAL;
     mounted: boolean;
     elem: Node | null;
     value: string | VdomGenerator<any, any> | null;
@@ -85,17 +83,12 @@ export interface Style {
     [index: string]: string;
 }
 
-export interface VdomFragment extends VdomBase {
-    node_type: T_VDOM_FRAGMENT;
-    children: Array<Vdom | null>;
-}
-
 export interface VdomText extends VdomBase {
     node_type: T_VDOM_TEXT;
     value: string;
 }
 
-export type Vdom = VdomNode | VdomFragment | VdomFunctional<any, any> | VdomText;
+export type Vdom = VdomNode | VdomFunctional<any, any> | VdomText;
 
 export interface Attributes {
     node_type?: undefined;
@@ -215,9 +208,7 @@ const childToVdom = (child: Child) => {
         return v;
 
     } else if (Array.isArray(child)) {
-        const v = makeVdomFragment(child);
-        v.mounted = true;
-        return v;
+        throw new Error("Children should be flattened")
 
     // If a vdom was already created through v(), just bind the parent
     // Children must be unique so they can store state and elems
@@ -402,23 +393,9 @@ const makeVdomText = (text: string) => {
     ) as Vdom
 }
 
-const makeVdomFragment = (children: Array<Child>) => {
-    return new V(
-        VDOM_FRAGMENT,
-        null,
-        null,
-        {},
-        "",
-        children,
-        null,
-        null,
-        null
-    );
-}
-
 // TODO: Use constructor argument binding
 class V {
-    node_type: T_VDOM_NODE | T_VDOM_FRAGMENT | T_VDOM_TEXT | T_VDOM_FUNCTIONAL;
+    node_type: T_VDOM_NODE | T_VDOM_TEXT | T_VDOM_FUNCTIONAL;
     mounted: boolean;
     elem: Node | null;
     value: string | VdomGenerator<any, any> | null;
@@ -433,7 +410,7 @@ class V {
     binding: BindPoint;
 
     constructor(
-        node_type: T_VDOM_NODE | T_VDOM_FRAGMENT | T_VDOM_TEXT | T_VDOM_FUNCTIONAL,
+        node_type: T_VDOM_NODE | T_VDOM_TEXT | T_VDOM_FUNCTIONAL,
         value: string | VdomGenerator<any, any> | null,
         key: any,
         attributes: any,

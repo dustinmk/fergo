@@ -1,7 +1,6 @@
 import {Vdom, VdomNode, VdomText, VdomFunctional,  Attributes, BindPoint, Style} from "./vdom";
 import {
     VDOM_NODE,
-    VDOM_FRAGMENT,
     VDOM_TEXT,
     VDOM_FUNCTIONAL,
 } from "./constants";
@@ -35,8 +34,8 @@ const update = (
         new_vdom.elem = updateNode(old_vdom, new_vdom, bindpoint, init_queue);
         new_vdom.binding = bindpoint;
 
-    } else if (new_vdom.node_type === VDOM_FRAGMENT) {
-        throw new Error("Should not be updating a VdomFragmet");
+    } else {
+        throw new Error("Updating invalid vdom type");
     }
 
     return new_vdom.elem;
@@ -49,7 +48,7 @@ const updateNullNode = (old_vdom: Vdom | null) => {
     }
 
     // Leaf-first order so the leaves still have the parents when called
-    if (old_vdom.node_type === VDOM_NODE || old_vdom.node_type === VDOM_FRAGMENT) {
+    if (old_vdom.node_type === VDOM_NODE) {
         for (const child of old_vdom.children) {
             if (child !== null) {
                 updateNullNode(child);
@@ -290,9 +289,6 @@ const createChildren = (elem: Node, vdoms: Array<Vdom | null>, bindpoint: BindPo
     for (const child of vdoms) {
         if (child === null) {
             continue;
-        } else if(child.node_type === VDOM_FRAGMENT) {
-            createChildren(elem, child.children, bindpoint, init_queue);
-
         } else if (child.node_type === VDOM_NODE) {
             const child_elem = createHTMLElement(child, bindpoint, init_queue);
             if (bindpoint !== null) child.binding = bindpoint;

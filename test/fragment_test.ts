@@ -2,7 +2,7 @@ import chai, {expect} from "chai";
 import jsdom from "mocha-jsdom";
 import {v, mount, redraw, redrawSync, selectRedraw} from "src/index";
 import chaiDOM from "chai-dom";
-import {getRootElement, printDocument} from "./test_common";
+import {getRootElement} from "./test_common";
 
 chai.use(chaiDOM);
 selectRedraw(redrawSync);
@@ -96,11 +96,9 @@ describe("Fragments", () => {
                 ],
             ]));
         mount(getRootElement(), root);
-        printDocument()
         expect(document.querySelectorAll("p")).to.have.text(["1", "2"])
         toggle = false;
         redraw(root)
-        printDocument()
         expect(document.querySelectorAll("p")).to.have.text(["1", "3", "4"])
     })
 

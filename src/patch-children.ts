@@ -1,7 +1,6 @@
-import {Vdom, VdomFragment, VdomNode, BindPoint} from "./vdom";
+import {Vdom, VdomNode, BindPoint} from "./vdom";
 import {
     VDOM_NODE,
-    VDOM_FRAGMENT,
     VDOM_FUNCTIONAL,
 } from "./constants";
 import update from "./update";
@@ -38,9 +37,7 @@ export const patchChildren = (
 
         if (new_child !== null
             && old_child !== null
-            && (old_child.node_type === VDOM_FRAGMENT
-                || new_child.node_type === VDOM_FRAGMENT
-                || old_child.key !== new_child.key)
+            && old_child.key !== new_child.key
         ) {
             break;
         }
@@ -106,34 +103,20 @@ const reconcileWithLIS = (old_parent: Vdom, old_children: Array<Vdom | null>, ne
 
     // TODO: Reuse unused keyed elements for new keyed elements after matching is done
     let new_index = 0;
-    let old_index: number = 0;
     while (new_index < new_children.length) {
         const new_child = new_children[new_index];
         const matching_child_index = findOldVdomIndex(new_child, keyed, unkeyed);
         const matching_child = matching_child_index === null ? null : old_children[matching_child_index];
         
-        if (isFragment(new_child) || isFragment(matching_child)) {
-            let next_parent = findFragmentInsertPoint(old_index + 1, old_children);
-            if (next_parent === null) next_parent = parent_next_node;
-
-            const old_fragment_children = isFragment(matching_child) ? matching_child.children : [matching_child];
-            const new_fragment_children = isFragment(new_child) ? new_child.children : [new_child];
-
-            patchChildren(old_parent, old_fragment_children, new_fragment_children, next_parent, bindpoint, init_queue);
-            matching_vdoms.push(-1);
-
-        } else {
-            matching_vdoms.push(
-                new_child !== null
-                && matching_child !== null
-                && matching_child_index !== null
-                ? matching_child_index
-                : -1
-            );
-        }
+        matching_vdoms.push(
+            new_child !== null
+            && matching_child !== null
+            && matching_child_index !== null
+            ? matching_child_index
+            : -1
+        );
 
         ++new_index;
-        ++old_index;
     }
 
     // TODO: Assign unmatched keyed new to unmatched keyed old into matching_vdoms
@@ -168,25 +151,6 @@ const reconcileWithLIS = (old_parent: Vdom, old_children: Array<Vdom | null>, ne
     clearExtraNodes(old_parent, old_children, keyed, unkeyed);
 
     return old_parent.elem;
-}
-
-const findFragmentInsertPoint = (next_index: number, old_children: Array<Vdom | null>): Vdom | null => {
-    while (next_index < old_children.length) {
-        const candidate = old_children[next_index++];
-
-        if (candidate !== null && candidate.node_type === VDOM_FRAGMENT) {
-            return findFragmentInsertPoint(0, candidate.children);
-
-        } else if (candidate !== null && candidate.mounted) {
-            return candidate;
-        }
-    }
-
-    return null;
-}
-
-const isFragment = (vdom: Vdom | null): vdom is VdomFragment => {
-    return vdom !== null && vdom.node_type === VDOM_FRAGMENT;
 }
 
 const clearExtraNodes = (old_parent: Vdom, old_children: Array<Vdom | null>, keyed: Keyed, unkeyed: Unkeyed) => {
@@ -274,15 +238,6 @@ const patchElements = (
 
         // Skip over null or reused nodes
         if (old_vdom !== null && !old_vdom.mounted) {
-            ++old_index;
-            continue;
-        }
-
-        // Filter out fragments
-        if ( (new_vdom !== null && new_vdom.node_type === VDOM_FRAGMENT)
-            || (old_vdom !== null && old_vdom.node_type === VDOM_FRAGMENT)
-         ) {
-            ++new_index;
             ++old_index;
             continue;
         }
