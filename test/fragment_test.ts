@@ -81,7 +81,7 @@ describe("Fragments", () => {
         expect(document.querySelectorAll("p")).to.have.text(["7", "6", "4", "3"])
     })
 
-    it.only("replaces second element with fragment", () => {
+    it("replaces second element with fragment", () => {
         let toggle = true;
         const root = v(() => v("div", toggle
             ? [

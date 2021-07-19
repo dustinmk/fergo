@@ -450,12 +450,28 @@ class V {
         this.key = key;
         this.attributes = attributes;
         this.classes = classes;
-        this.children = children.map(child => childToVdom(child)) as Array<Vdom | null>; 
+        this.children = childrenToVdomArray(children); 
         this.namespace = namespace;
         this.instance = null;
         this.state = state;
         this.props = props;
         this.binding = {bindpoint: null}
+    }
+}
+
+const childrenToVdomArray = (children: Child[]) => {
+    const result_children: Array<Vdom | null> = [];
+    insertChildrenIntoVdomArray(children, result_children);
+    return result_children;
+}
+
+const insertChildrenIntoVdomArray = (children: Child[], result_children: Array<Vdom | null>) => {
+    for (const child of children) {
+        if (Array.isArray(child)) {
+            insertChildrenIntoVdomArray(child, result_children);
+        } else {
+            result_children.push(childToVdom(child) as Vdom | null);
+        }
     }
 }
 
