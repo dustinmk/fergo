@@ -1,6 +1,7 @@
 import {mount, v, Vdom} from "minim/index";
 
 import todo from "./examples/todo-example";
+import await_example from "./examples/await-example";
 import pubsub from "./examples/pubsub-example";
 import state from "./examples/state-example";
 import reactive from "./examples/reactive-example";
@@ -14,6 +15,7 @@ import depinj from "./examples/dependency-injection-example";
 
 const examples: {[index: string]: () => Vdom } =  {
     "Todo": todo,
+    "Await": await_example,
     "PubSub": pubsub,
     "State": state,
     "Reactive": reactive,

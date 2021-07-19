@@ -10,7 +10,7 @@ const vAwait = (
     catch_component?: (err: any) => Vdom
 ) => {
     return (vdom: Vdom) => {
-        if (vdom.state === undefined) {
+        if (vdom.state === null) {
             vdom.state = {resolved: "no", error: null, value: null};
         }
 
@@ -28,23 +28,24 @@ const vAwait = (
         
         if(vdom.state.resolved === "no") {
             return waiting_component();
-        } else if (vdom.state.resovled == "resolved") {
+        } else if (vdom.state.resolved === "resolved") {
             return resolved_component(vdom.state.value);
         } else if (catch_component !== undefined) {
             return catch_component(vdom.state.error);
         }
 
-        return null;
+        return waiting_component();
     }
 }
 
 export default () => {
-    const timer = new Promise(resolve => {
-        setTimeout(() => resolve());
+    const timer = new Promise<void>(resolve => {
+        setTimeout(() => resolve(), 2000);
     });
 
-    return vAwait(timer,
+    return v(vAwait(
+        timer,
         () => v("p", "waiting..."),
         () => v("p", "resolved")
-    );
+    ));
 }
