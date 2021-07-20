@@ -120,6 +120,11 @@ export function v(selector: string, children: Child): Vdom;
 export function v(selector: string, attributes: CustomAttr & Attributes, children: Child): Vdom;
 export function v<PropType, StateType>(
     selector: VdomGenerator<PropType, StateType>,
+    props: FunctionalAttributes<PropType, StateType>,
+    children?: Child
+): Vdom;
+export function v<PropType, StateType>(
+    selector: VdomGenerator<PropType, StateType>,
     props?: FunctionalAttributes<PropType, StateType>,
     children?: Child
 ): Vdom;

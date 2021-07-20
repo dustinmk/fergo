@@ -1,4 +1,4 @@
-import {v, mount, redraw} from "minim/index";
+import {v, mount, redraw} from "fergo/index";
 import {Store} from "./store";
 
 const store = new Store();

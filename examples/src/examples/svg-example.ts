@@ -1,4 +1,4 @@
-import {v, Vdom} from "minim/index";
+import {v, Vdom} from "fergo/index";
 
 const svg = (selector: string, attr: {[index: string]: any}, children?: Vdom[]) => {
     return children === undefined

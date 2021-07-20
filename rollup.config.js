@@ -29,15 +29,14 @@ const makeConfig = (root_folder, name, entry, extra) => {
               declarationDir: path.join(root_folder, "dist")
             }
           },
-          objectHashIgnoreUnknownHack: true,
           useTsconfigDeclarationDir: true
       }),
       alias({
           resolve: [".ts", ".js"],
-          "minim": "./src",
+          "fergo": "./src",
           "test": "./test",
-          "minim-benchmark": "./benchmark/src",
-          "minim-examples": "./examples/src"
+          "fergo-benchmark": "./benchmark/src",
+          "fergo-examples": "./examples/src"
       }),
       resolve(),
       commonjs(),
@@ -48,5 +47,5 @@ const makeConfig = (root_folder, name, entry, extra) => {
 }
 
 export default [
-  makeConfig(".", "minim", "index.ts")
+  makeConfig(".", "fergo", "index.ts")
 ]

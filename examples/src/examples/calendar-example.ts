@@ -1,4 +1,4 @@
-import {v, VdomFunctional, redraw} from "minim/index";
+import {v, VdomFunctional, redraw} from "fergo/index";
 
 const range = (start: number, end: number, step: number = 1) => {
      const result = [];

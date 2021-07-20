@@ -1,5 +1,5 @@
 
-import { Vdom, mount, redraw, selectRedraw, redrawSync } from "minim";
+import { Vdom, mount, redraw, selectRedraw, redrawSync } from "fergo";
 import {Row, generateRows} from "./big-table-row";
 
 export default (generator: (props: {rows: Row[]}) => Vdom) => 
@@ -29,7 +29,7 @@ export default (generator: (props: {rows: Row[]}) => Vdom) =>
     const min_time = 10 * 1000;
     const min_iter = 50;
     let iter = 0;
-    await new Promise(resolve => {
+    await new Promise<void>(resolve => {
         const single_iteration = () => {
 
             call_setup();

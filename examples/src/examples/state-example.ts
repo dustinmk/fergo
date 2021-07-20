@@ -1,4 +1,4 @@
-import {VdomFunctional, v, initializeWith} from "minim/index";
+import {VdomFunctional, v, initializeWith} from "fergo/index";
 import faker from "faker";
 
 // Card component

@@ -1,4 +1,4 @@
-import {v, Vdom, VdomFunctional, VDOM_NODE, redraw} from "minim/index";
+import {v, Vdom, VdomFunctional, VDOM_NODE, redraw} from "fergo/index";
 
 export default () => {
 

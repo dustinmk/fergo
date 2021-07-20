@@ -1,4 +1,4 @@
-import {v, redraw, VdomFunctional} from "minim/index";
+import {v, redraw, VdomFunctional} from "fergo/index";
 import flyd from "flyd";
 
 export default () => {
@@ -9,7 +9,7 @@ export default () => {
     let count = 0;
     const count_stream = flyd.stream(count);
     setInterval(() => count_stream(++count), 1000);
-    const view_data = flyd.combine((string_value, count_value) => ({
+    const view_data = flyd.combine((string_value: flyd.Stream<string>, count_value: flyd.Stream<number>) => ({
         string_value: string_value(),
         count_value: count_value()
     }), [flyd.merge(input_value, flyd.map(() => "", clear)), count_stream]);

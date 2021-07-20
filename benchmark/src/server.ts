@@ -70,7 +70,7 @@ app.get("/run", async (req, res) => {
     try {
         const base_name = req.query.name === undefined
             ? (new Date()).toTimeString()
-            : req.query.name;
+            : req.query.name as string;
         let name = base_name;
 
         let name_suffix = 1;

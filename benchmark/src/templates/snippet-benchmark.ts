@@ -12,7 +12,7 @@ export default (
     const iter_batch = 1000;
     const min_iter = 10;
     let iter = 0;
-    await new Promise(resolve => {
+    await new Promise<void>(resolve => {
         const single_iteration = () => {
 
             call_setup();

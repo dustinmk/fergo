@@ -1,4 +1,4 @@
-import {v, mount, router, VdomFunctional, Path, go, link, redraw} from "minim/index";
+import {v, mount, router, VdomFunctional, Path, go, link, redraw} from "fergo/index";
 
 const subrouter = router({
     "/a": () => v("p", "a"),

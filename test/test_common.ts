@@ -3,6 +3,7 @@ import * as sinon from "sinon";
 import {v, mount, redraw, Vdom, VdomFunctional} from "src/index";
 import chaiDOM from "chai-dom";
 import beautify from "js-beautify";
+import { FunctionalAttributes } from "fergo/vdom";
 
 chai.use(chaiDOM);
 
@@ -15,13 +16,13 @@ export function testMountCallbacks(when_mounted: string, root_generator: (toggle
 
     const state = {name: "0"};
     const generator = () => v("p", "component");
-    const onMount = sinon.spy((_: State) => {})
-    const onUnmount = sinon.spy((_: State) => {})
+    const onMount = sinon.spy((_: VdomFunctional<void, State>) => {})
+    const onUnmount = sinon.spy((_: VdomFunctional<void, State>) => {})
     const component = v(generator, {
         oninit: onMount,
         onremove: onUnmount,
         state: state
-    })
+    } as FunctionalAttributes<void, typeof state>)
 
     let toggle = false;
     const root = v(() => root_generator(toggle, component));

@@ -1,4 +1,4 @@
-import {v, Vdom, redraw} from "minim/index";
+import {v, Vdom, redraw} from "fergo/index";
 
 // Svelte-like await keyword
 // TODO: clean up and test

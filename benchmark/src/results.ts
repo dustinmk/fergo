@@ -1,5 +1,5 @@
 
-import {v, mount, redraw} from "minim";
+import {v, mount, redraw} from "fergo";
 import {BenchmarkSet} from "./benchmark-data";
 
 // on click, fetch /run
@@ -9,14 +9,14 @@ import {BenchmarkSet} from "./benchmark-data";
 
 // TODO: Toggle benchmarks on or off: in left column
 const generateDocument = () => {
-    const benchmark_names = new Set();
+    const benchmark_names = new Set<string>();
     state.benchmark_sets
         .forEach(set =>
             Object.keys(set.results).forEach(name =>
                 benchmark_names.add(name)));
 
     return v("div", [
-        v("h1", "Minim: Benchmark"),
+        v("h1", "Fergo: Benchmark"),
         v("hr"),
         v("label", "Name\xA0"),
         v("input", {

@@ -1,4 +1,4 @@
-import {v} from "minim";
+import {v} from "fergo";
 import {Row} from "../templates/big-table-row";
 
 export default (props: {rows: Row[]}) => v(() => v("table", props.rows.map(row => {

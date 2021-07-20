@@ -1,6 +1,6 @@
-import {v, Component} from "minim/index";
-import {DataSource} from "minim-examples/data_source";
-import {ObservingComponent} from "minim-examples/observing_component";
+import {v, Component} from "fergo/index";
+import {DataSource} from "fergo-examples/data_source";
+import {ObservingComponent} from "fergo-examples/observing_component";
 
 // Model
 const text_event = new DataSource<string>("init text");

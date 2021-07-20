@@ -1,4 +1,4 @@
-import {mount, v, Vdom} from "minim/index";
+import {mount, v, Vdom} from "fergo/index";
 
 import todo from "./examples/todo-example";
 import await_example from "./examples/await-example";

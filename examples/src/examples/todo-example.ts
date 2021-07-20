@@ -1,4 +1,4 @@
-import {v} from "minim/index";
+import {v} from "fergo/index";
 
 export default () => {
     // Todo Model

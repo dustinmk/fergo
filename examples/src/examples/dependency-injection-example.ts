@@ -1,4 +1,4 @@
-import {v, VdomFunctional} from "minim/index";
+import {v, VdomFunctional} from "fergo/index";
 
 // XKCD api
 class Api {

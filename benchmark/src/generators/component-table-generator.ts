@@ -1,4 +1,4 @@
-import {v, VdomFunctional} from "minim";
+import {v, VdomFunctional} from "fergo";
 import {Row} from "../templates/big-table-row";
 
 const RowComponent = (vdom: VdomFunctional<{row: Row}, {}>) => {

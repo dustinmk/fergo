@@ -7,7 +7,7 @@ declare global {
     }
 }
 
-import { Vdom, mount, redraw, selectRedraw, redrawSync } from "minim";
+import { Vdom, mount, redraw, selectRedraw, redrawSync } from "fergo";
 import {Row, generateRows} from "./big-table-row";
 
 export default (generator: (props: {rows: Row[]}) => Vdom) => 

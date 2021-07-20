@@ -1,4 +1,4 @@
-import {v} from "minim";
+import {v} from "fergo";
 import {Row} from "../templates/big-table-row";
 
 const onclick = () => {alert("name")};
