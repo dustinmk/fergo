@@ -1,6 +1,46 @@
 <html>
     <head>
         <title>Router Examples</title>
+        <style>
+            body {
+                margin: 0;
+            }
+
+            p, h1, a {
+                font-family: Arial, Helvetica, sans-serif;
+            }
+
+            h1 {
+                padding: 12px;
+                margin: 0px;
+            }
+
+            a:link, a:visited, a:active {
+                text-decoration: none;
+                color: white;
+            }
+
+            .nav-pane {
+                display: flex;
+            }
+
+            .nav-pane > span {
+                width: 20em;
+                text-align:center;
+                padding: 12px;
+                background-color: #000070;
+                color: white;
+            }
+
+            .nav-pane > span:hover {
+                background-color: #000040;
+                cursor: pointer;
+            }
+
+            .nav-pane > span:not(:first-child) {
+                border-left: solid white 1px;
+            }
+        </style>
     </head>
     <body>
         <div id="root"></div>

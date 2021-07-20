@@ -1,40 +1,40 @@
 {
-    "compilerOptions": {
-      "target": "ES2015",
-      "module": "commonjs",
-      "lib": ["es6", "dom"],
-      "jsx": "react",
-      "declaration": false,
-      "sourceMap": true,
-      "downlevelIteration": true,
-      "strict": true,
-      "noImplicitAny": true,
-      "strictNullChecks": true,
-      "strictFunctionTypes": true,
-      "strictPropertyInitialization": true,
-      "noImplicitThis": true,
-      "alwaysStrict": true,
-      "noUnusedLocals": true,
-      "noUnusedParameters": true,
-      "noImplicitReturns": true,
-      "noFallthroughCasesInSwitch": true,
-      "baseUrl": ".",
-      "paths": {
-        "fergo": ["src/index.ts"],
-        "fergo/*": ["src/*"],
-        "fergo-examples/*": ["examples/src/*"],
-        "fergo-benchmark/*": ["benchmark/src/*"],
-        "test/*": ["test/*"]
-      },
-      "esModuleInterop": true,
+  "compilerOptions": {
+    "target": "ES2015",
+    "module": "commonjs",
+    "lib": ["es6", "dom"],
+    "jsx": "react",
+    "declaration": false,
+    "sourceMap": true,
+    "downlevelIteration": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "fergo": ["src/index.ts"],
+      "fergo/*": ["src/*"],
+      "fergo-examples/*": ["examples/src/*"],
+      "fergo-benchmark/*": ["benchmark/src/*"],
+      "test/*": ["test/*"]
     },
-    "include": [
-      "src/**/*",
-      "test/**/*",
-      "examples/src/**/*",
-      "benchmark/src/**/*"
-    ],
-    "exclude": [
-      "node_modules"
-    ]
-  }
+    "esModuleInterop": true
+  },
+  "include": [
+    "src/**/*",
+    "test/**/*",
+    "examples/src/**/*",
+    "benchmark/src/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -1,6 +1,5 @@
 const path = require("path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
-const merge = require("deepmerge");
 const nodeExternals = require("webpack-node-externals");
 
 const buildConfig = (root_dir, entry, output, copy_files) => {

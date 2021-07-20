@@ -48,12 +48,14 @@ if (root === null) {
 }
 
 mount(root, () => v("div", [
-    link(r, "/name", "Name"),
-    link(r, "/g/19/w/67/l", "Params"),
-    link(r, "/p/sub/path", "Path"),
-    link(r, "/r/a", "Sub A"),
-    link(r, "/r/b", "Sub B"),
-    link(r, "/r/c", "Sub c"),
-    link(r, "/t/3", "Nested"),
+    v("div", {class: "nav-pane"}, [
+        v("span", link(r, "/name", "Name")),
+        v("span", link(r, "/g/19/w/67/l", "Params")),
+        v("span", link(r, "/p/sub/path", "Path")),
+        v("span", link(r, "/r/a", "Sub A")),
+        v("span", link(r, "/r/b", "Sub B")),
+        v("span", link(r, "/r/c", "Sub c")),
+        v("span", link(r, "/t/3", "Nested")),
+    ]),
     r.view
 ]));

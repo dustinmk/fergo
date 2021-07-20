@@ -1,7 +1,7 @@
 
 # fergo ##########
 
-**WARNING: This was just a learning project that went a bit far - it's not ready for large scale production, but bug reports would be appreciated**
+**WARNING: not ready for production**
 
 Fergo is a lightweight (4kB gzipped) and performant front end Typescript framework with minimal API and compatible with most popular data flow paradigms. It includes a router and supports flux, portals, higher order components, fragments, persistant state, reactive, publish-subscribe, JSX, and single-direction data binding with ease. Everything is a function that produces a simple object, keeping the framework out of the way. The Todo list sample is only 50 lines long and performance is superior to React while approaching InfernoJS. Event handlers are proxied so inline event handlers have minimal performance cost. Inspired by mithril (state management), maquette (style), and ivi (patch algorithm).
 
